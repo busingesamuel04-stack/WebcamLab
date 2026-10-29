@@ -42,6 +42,9 @@ public static class NativeBackendValidator
         results.Add(TestActionableFailureContract());
         results.Add(TestSustainedInterleavedMultiplexingLoad());
         results.Add(TestMoovAtomValidationGuard());
+        results.Add(TestBoundedInterleavingStarvationImmunity());
+        results.Add(TestTailSilenceSafetyCap());
+        results.Add(TestInterruptedStreamGracefulShutdown());
 
         return results;
     }
@@ -706,6 +709,254 @@ public static class NativeBackendValidator
             return new NativeBackendValidationResult
             {
                 Name = "10. MP4 Container Validation Guard (Moov Atom Integrity)",
+                Passed = false,
+                ExecutionMs = sw.Elapsed.TotalMilliseconds,
+                Details = $"Exception: {ex.Message}"
+            };
+        }
+        finally
+        {
+            try { if (File.Exists(tempMp4)) File.Delete(tempMp4); } catch { }
+        }
+    }
+
+    private static NativeBackendValidationResult TestBoundedInterleavingStarvationImmunity()
+    {
+        var sw = Stopwatch.StartNew();
+        string tempMp4 = Path.Combine(Path.GetTempPath(), $"WebcamLab_Test_Starvation_{Guid.NewGuid():N}.mp4");
+        try
+        {
+            using var recorder = new NativeMediaFoundationRecorder();
+            recorder.Start(
+                tempMp4,
+                640,
+                480,
+                30.0,
+                RecordingMode.OriginalCamera,
+                null,
+                null,
+                "RGB32",
+                RecordingCadenceMode.Capture_Faithful_VFR,
+                enableAudio: true);
+
+            byte[] dummy = new byte[640 * 480 * 4];
+            GCHandle pin = GCHandle.Alloc(dummy, GCHandleType.Pinned);
+            try
+            {
+                IntPtr pBuf = pin.AddrOfPinnedObject();
+
+                // 1. Phase 1: 10 video frames with ZERO audio chunks (simulating audio starvation under CPU load)
+                for (int i = 0; i < 10; i++)
+                {
+                    recorder.WriteFrame(pBuf, dummy.Length, (long)(i * 333_333), Stopwatch.GetTimestamp());
+                    Thread.Sleep(2);
+                }
+
+                // 2. Phase 2: Delayed audio arrives: feed 35 audio chunks (each 480 samples = 10 ms at 48kHz)
+                byte[] pcm = new byte[480 * 2 * 2]; // 480 samples, stereo, 16-bit
+                for (int a = 0; a < 35; a++)
+                {
+                    var chunk = new WebcamLab.Capture.Audio.AudioChunk(
+                        pcm,
+                        480,
+                        2,
+                        48000,
+                        (ulong)(a * 480),
+                        (ulong)Stopwatch.GetTimestamp(),
+                        0);
+                    recorder.EnqueueAudioChunkForTesting(chunk);
+                }
+
+                // 3. Phase 3: 10 more video frames
+                for (int i = 10; i < 20; i++)
+                {
+                    recorder.WriteFrame(pBuf, dummy.Length, (long)(i * 333_333), Stopwatch.GetTimestamp());
+                    Thread.Sleep(2);
+                }
+            }
+            finally
+            {
+                pin.Free();
+            }
+
+            recorder.Stop();
+
+            int captured = recorder.FramesCaptured;
+            int encoded = recorder.FramesEncoded;
+            int dropped = recorder.DroppedFrames;
+            bool fileExists = File.Exists(tempMp4);
+            long fileLength = fileExists ? new FileInfo(tempMp4).Length : 0;
+            bool hasMoov = Mp4TimestampInjector.HasValidMoovAtom(tempMp4);
+
+            sw.Stop();
+            bool passed = captured == 20 && encoded == 20 && dropped == 0 && fileExists && fileLength > 5000 && hasMoov;
+            return new NativeBackendValidationResult
+            {
+                Name = "11. Bounded Interleaving & Mutual Queue Starvation Immunity",
+                Passed = passed,
+                ExecutionMs = sw.Elapsed.TotalMilliseconds,
+                Details = $"Captured={captured}, Encoded={encoded}, Dropped={dropped}, FileSize={fileLength:N0} bytes, HasMoov={hasMoov}"
+            };
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            return new NativeBackendValidationResult
+            {
+                Name = "11. Bounded Interleaving & Mutual Queue Starvation Immunity",
+                Passed = false,
+                ExecutionMs = sw.Elapsed.TotalMilliseconds,
+                Details = $"Exception: {ex.Message}"
+            };
+        }
+        finally
+        {
+            try { if (File.Exists(tempMp4)) File.Delete(tempMp4); } catch { }
+        }
+    }
+
+    private static NativeBackendValidationResult TestTailSilenceSafetyCap()
+    {
+        var sw = Stopwatch.StartNew();
+        string tempMp4 = Path.Combine(Path.GetTempPath(), $"WebcamLab_Test_TailCap_{Guid.NewGuid():N}.mp4");
+        try
+        {
+            using var recorder = new NativeMediaFoundationRecorder();
+            recorder.Start(
+                tempMp4,
+                640,
+                480,
+                30.0,
+                RecordingMode.OriginalCamera,
+                null,
+                null,
+                "RGB32",
+                RecordingCadenceMode.Capture_Faithful_VFR,
+                enableAudio: true);
+
+            byte[] dummy = new byte[640 * 480 * 4];
+            GCHandle pin = GCHandle.Alloc(dummy, GCHandleType.Pinned);
+            try
+            {
+                IntPtr pBuf = pin.AddrOfPinnedObject();
+                // 30 video frames = 1.0 second of video
+                for (int i = 0; i < 30; i++)
+                {
+                    recorder.WriteFrame(pBuf, dummy.Length, (long)(i * 333_333), Stopwatch.GetTimestamp());
+                    Thread.Sleep(1);
+                }
+
+                // Only 1 audio chunk = 10 ms of audio (creates intentional 990 ms tail gap)
+                byte[] pcm = new byte[480 * 2 * 2];
+                var chunk = new WebcamLab.Capture.Audio.AudioChunk(
+                    pcm,
+                    480,
+                    2,
+                    48000,
+                    0,
+                    (ulong)Stopwatch.GetTimestamp(),
+                    0);
+                recorder.EnqueueAudioChunkForTesting(chunk);
+            }
+            finally
+            {
+                pin.Free();
+            }
+
+            var stopWatch = Stopwatch.StartNew();
+            recorder.Stop();
+            stopWatch.Stop();
+
+            bool fileExists = File.Exists(tempMp4);
+            long fileLength = fileExists ? new FileInfo(tempMp4).Length : 0;
+            bool hasMoov = Mp4TimestampInjector.HasValidMoovAtom(tempMp4);
+
+            sw.Stop();
+            // Finalize must be fast (< 2000 ms), not hung in silence loop, and moov atom must exist
+            bool passed = stopWatch.ElapsedMilliseconds < 2000 && fileExists && fileLength > 5000 && hasMoov;
+            return new NativeBackendValidationResult
+            {
+                Name = "12. Tail Silence Safety Cap & Bounded Alignment",
+                Passed = passed,
+                ExecutionMs = sw.Elapsed.TotalMilliseconds,
+                Details = $"StopElapsedMs={stopWatch.ElapsedMilliseconds}, FileSize={fileLength:N0} bytes, HasMoov={hasMoov}"
+            };
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            return new NativeBackendValidationResult
+            {
+                Name = "12. Tail Silence Safety Cap & Bounded Alignment",
+                Passed = false,
+                ExecutionMs = sw.Elapsed.TotalMilliseconds,
+                Details = $"Exception: {ex.Message}"
+            };
+        }
+        finally
+        {
+            try { if (File.Exists(tempMp4)) File.Delete(tempMp4); } catch { }
+        }
+    }
+
+    private static NativeBackendValidationResult TestInterruptedStreamGracefulShutdown()
+    {
+        var sw = Stopwatch.StartNew();
+        string tempMp4 = Path.Combine(Path.GetTempPath(), $"WebcamLab_Test_Interrupted_{Guid.NewGuid():N}.mp4");
+        try
+        {
+            using var recorder = new NativeMediaFoundationRecorder();
+            recorder.Start(
+                tempMp4,
+                640,
+                480,
+                30.0,
+                RecordingMode.OriginalCamera,
+                null,
+                null,
+                "RGB32",
+                RecordingCadenceMode.Capture_Faithful_VFR,
+                enableAudio: true);
+
+            byte[] dummy = new byte[640 * 480 * 4];
+            GCHandle pin = GCHandle.Alloc(dummy, GCHandleType.Pinned);
+            try
+            {
+                IntPtr pBuf = pin.AddrOfPinnedObject();
+                for (int i = 0; i < 5; i++)
+                {
+                    recorder.WriteFrame(pBuf, dummy.Length, (long)(i * 333_333), Stopwatch.GetTimestamp());
+                }
+            }
+            finally
+            {
+                pin.Free();
+            }
+
+            // Normal stop followed by immediate second stop
+            recorder.Stop();
+            recorder.Stop();
+
+            bool fileExists = File.Exists(tempMp4);
+            long fileLength = fileExists ? new FileInfo(tempMp4).Length : 0;
+            bool hasMoov = Mp4TimestampInjector.HasValidMoovAtom(tempMp4);
+
+            sw.Stop();
+            bool passed = fileExists && fileLength > 1000 && hasMoov;
+            return new NativeBackendValidationResult
+            {
+                Name = "13. Interrupted Stream Graceful Shutdown & Re-Stop Immunity",
+                Passed = passed,
+                ExecutionMs = sw.Elapsed.TotalMilliseconds,
+                Details = $"FileSize={fileLength:N0} bytes, HasMoov={hasMoov}"
+            };
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            return new NativeBackendValidationResult
+            {
+                Name = "13. Interrupted Stream Graceful Shutdown & Re-Stop Immunity",
                 Passed = false,
                 ExecutionMs = sw.Elapsed.TotalMilliseconds,
                 Details = $"Exception: {ex.Message}"

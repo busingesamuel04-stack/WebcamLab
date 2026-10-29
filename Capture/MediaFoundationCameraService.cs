@@ -1001,9 +1001,15 @@ public partial class MediaFoundationCameraService : ICameraService
 
     public Task StopRecordingAsync()
     {
-        _recorder.Stop();
-        Statistics.IsRecording = false;
-        StatisticsUpdated?.Invoke(Statistics);
+        try
+        {
+            _recorder.Stop();
+        }
+        finally
+        {
+            Statistics.IsRecording = false;
+            StatisticsUpdated?.Invoke(Statistics);
+        }
         return Task.CompletedTask;
     }
 
