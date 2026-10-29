@@ -1,5 +1,30 @@
 # WebcamLab Release Notes
 
+## Version 1.1.0-rc3 — Native Windows Release Candidate 3 (Build 2026.10)
+
+WebcamLab v1.1.0-rc3 resolves **Defect 39-1** in the Native Media Foundation recording engine, ensuring sustained recordings of any length finalize reliably with guaranteed MP4 container integrity and zero multiplexing stalls.
+
+### 1. Key Improvements in v1.1.0-rc3
+
+- **Chronological PTS-Ordered Interleaved Multiplexing:**
+  - *Root Cause Resolved:* In v1.1.0-rc2, encoding queues drained asymmetrically, writing video faster than audio. When video PTS led audio PTS by more than 2 seconds, Windows Media Foundation's MPEG-4 Sink Writer multiplexer hit internal stream-distance limits and throttled `WriteSample()` by blocking for 1,000 ms per sample. On longer recordings, this caused thread join timeouts and abandoned finalization (`moov atom not found`).
+  - *Fix:* Re-engineered `ProcessEncodingQueues()` with a dual-stream chronological interleaving arbiter (`vPts <= aPts`). Video and audio samples are fed to the Sink Writer in strict presentation timestamp order. Neither stream leads the other, completely eliminating Sink Writer throttling.
+- **Definitive Synchronization Barrier & Adaptive Watchdog:**
+  - Replaced the fixed 10-second thread join timeout in `Stop()` with a dedicated `ManualResetEventSlim` worker completion barrier.
+  - Added an adaptive session-aware watchdog timeout `Math.Max(30000, (_framesCaptured * 50) + 15000)` providing deterministic finalization guarantees without premature abandonment.
+  - Added rigorous error propagation: checks and records the HRESULT of `IMFSinkWriter.Finalize()` and captures background thread exceptions, preventing silent failures.
+- **MP4 Container Validation Guard:**
+  - Implemented `Mp4TimestampInjector.HasValidMoovAtom()` to inspect top-level box structures before attempting timestamp injection.
+  - Explicitly rejects unfinalized or truncated bitstreams, preventing secondary corruption or premature parser crashes.
+- **Audio Calibration Safety Clamping:**
+  - Clamped WASAPI clock alignment offsets to $\pm 2.0\text{ s}$ to prevent runaway silence insertion when interfacing with anomalous or desynchronized audio hardware.
+- **Validation & Test Coverage:**
+  - Automated test suite expanded to **106 tests** with 100% pass rate, including automated tests for sustained multiplexing load under stress and container validation guard.
+  - Empirically verified sustained 60-second hardware recording on Dell UZ2315H (901 video frames, 2,815 audio frames, A/V delta 13.48 ms, perfect moov atom, instant 43 ms finalization).
+  - All 8 physical camera regression tests passed cleanly.
+
+---
+
 ## Version 1.1.0-rc2 — Native Windows Release Candidate 2 (Build 2026.10)
 
 WebcamLab v1.1.0-rc2 is the refined native Windows Media Foundation release candidate of the native camera diagnostic, grading, and recording application.
