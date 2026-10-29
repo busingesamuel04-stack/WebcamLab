@@ -5,7 +5,7 @@
 #define MyAppVersion "1.1.0-rc4"
 #define MyAppPublisher "Antigravity Imaging"
 #define MyAppExeName "WebcamLab.exe"
-#define MyAppSourcePath "C:\Users\sambu\source\WebcamLab_Staging\Phase40C_RC4_Staging\app"
+#define MyAppSourcePath "C:\Users\sambu\source\WebcamLab_Staging\Phase40D_RC4_Staging\app"
 
 [Setup]
 AppId={{E517B1B6-84F7-47C2-9E15-E4E30FA4B6C3}
