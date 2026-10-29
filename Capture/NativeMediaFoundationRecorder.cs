@@ -681,6 +681,8 @@ public class NativeMediaFoundationRecorder : IRecorderBackend, IDisposable
                     aPts = (long)(_audioSamplesWritten * 10_000_000.0 / pendingAudio.SampleRate);
                 }
 
+                long currentAudioPtsHns = (long)(_audioSamplesWritten * 10_000_000.0 / 48000.0);
+
                 // Arbitration decision:
                 bool writeVideo;
                 if (pendingVideo != null && pendingAudio != null)
@@ -688,29 +690,50 @@ public class NativeMediaFoundationRecorder : IRecorderBackend, IDisposable
                     // Both streams have data ready: strictly chronological interleaving
                     writeVideo = (vPts <= aPts);
                 }
-                else if (pendingVideo != null && (audioDone || !_isAudioEnabled))
-                {
-                    // Audio stream finished or disabled: drain video to completion
-                    writeVideo = true;
-                }
                 else if (pendingAudio != null && videoDone)
                 {
                     // Video stream finished: drain audio to completion
                     writeVideo = false;
                 }
-                else if (pendingVideo != null && pendingAudio == null)
+                else if (pendingVideo != null && (audioDone || !_isAudioEnabled || pendingAudio == null))
                 {
-                    // Audio queue is momentarily dry during active recording.
-                    // Allow video to advance provided it does not lead the last written audio PTS by > 500 ms.
-                    if (vPts <= lastWrittenAudioPtsHns + MaxLeadThresholdHns)
+                    if (!_isAudioEnabled)
                     {
+                        // Audio not enabled in this recording: drain video directly
                         writeVideo = true;
                     }
                     else
                     {
-                        // Video leads audio by > 500 ms. Yield to prevent SinkWriter buffer exhaustion.
-                        Thread.Sleep(1);
-                        continue;
+                        // Audio is enabled in container, but no audio packet is currently available in pendingAudio.
+                        // Check if audio capture service was stopped or disconnected mid-recording
+                        if (!_audioCaptureService.IsCapturing)
+                        {
+                            if (_audioQueue != null && !_audioQueue.IsAddingCompleted)
+                            {
+                                _audioQueue.CompleteAdding();
+                            }
+                        }
+
+                        if (vPts <= currentAudioPtsHns + MaxLeadThresholdHns)
+                        {
+                            // Video is within 500 ms lead threshold of current audio progress: advance video
+                            writeVideo = true;
+                        }
+                        else
+                        {
+                            // Video leads audio timeline by > 500 ms (audio dropout, hardware spinup lag, or mic severance).
+                            // Synthesize silence up to vPts so audio tracks alongside video in the IMFSinkWriter.
+                            // This guarantees IMFSinkWriter never deadlocks or pauses video processing!
+                            long gapHns = vPts - currentAudioPtsHns;
+                            long silenceFrames = Math.Min(48000, (long)Math.Round((double)gapHns * 48000.0 / 10_000_000.0));
+                            if (silenceFrames > 0)
+                            {
+                                WriteSilenceAudioFrames(silenceFrames, 48000, 2);
+                                currentAudioPtsHns = (long)(_audioSamplesWritten * 10_000_000.0 / 48000.0);
+                                lastWrittenAudioPtsHns = currentAudioPtsHns;
+                            }
+                            writeVideo = true;
+                        }
                     }
                 }
                 else if (pendingAudio != null && pendingVideo == null)
@@ -768,51 +791,30 @@ public class NativeMediaFoundationRecorder : IRecorderBackend, IDisposable
 
                 long audioDurHns = (long)(_audioSamplesWritten * 10_000_000.0 / 48000.0);
                 long deltaHns = videoDurHns - audioDurHns;
-                const long MaxTailAlignmentHns = 1_000_000L; // Strict 100 ms upper bound cap
+                const long MaxTailAlignmentHns = 15_000_000L; // Bounded 1.5s upper bound cap
 
                 if (deltaHns > 50_000L) // Video outlasts audio by > 5 ms
                 {
                     if (deltaHns > MaxTailAlignmentHns)
                     {
-                        Debug.WriteLine($"[NativeMediaFoundationRecorder] Notice: Tail gap ({deltaHns / 10_000.0:F1} ms) exceeds 100 ms cap. Truncating tail silence to 100 ms.");
+                        Debug.WriteLine($"[NativeMediaFoundationRecorder] Notice: Tail gap ({deltaHns / 10_000.0:F1} ms) exceeds cap. Truncating tail silence.");
                         deltaHns = MaxTailAlignmentHns;
                     }
                     long tailSilenceFrames = (long)Math.Round((double)deltaHns * 48000.0 / 10_000_000.0);
                     WriteSilenceAudioFrames(tailSilenceFrames, 48000, 2);
                 }
-                else if (deltaHns < -50_000L && lastVideoItem != null)
+                else if (_cadenceMode == RecordingCadenceMode.CFR_Compatibility && deltaHns < -50_000L && lastVideoItem != null)
                 {
                     long extraFrames = (long)Math.Round((double)(-deltaHns) / videoFrameDurationHns);
-                    const long MaxExtraVideoFrames = 3; // Strict 3-frame cap (~100 ms at 30 FPS)
+                    const long MaxExtraVideoFrames = 45; // Strict 45-frame cap (~1.5s at 30 FPS)
                     if (extraFrames > MaxExtraVideoFrames)
                     {
                         Debug.WriteLine($"[NativeMediaFoundationRecorder] Notice: Audio outlasts video by {(-deltaHns) / 10_000.0:F1} ms. Truncating video tail padding to {MaxExtraVideoFrames} frames.");
                         extraFrames = MaxExtraVideoFrames;
                     }
-                    if (extraFrames < 1) extraFrames = 1;
                     for (int e = 0; e < extraFrames; e++)
                     {
-                        if (_cadenceMode == RecordingCadenceMode.Capture_Faithful_VFR)
-                        {
-                            long paddedHns = _finalSourceTimestampHns + videoFrameDurationHns;
-                            var paddedItem = new VideoFrameItem
-                            {
-                                Buffer = lastVideoItem.Buffer,
-                                Length = lastVideoItem.Length,
-                                SourceTimestampHns = paddedHns,
-                                QpcTicks = Stopwatch.GetTimestamp()
-                            };
-                            WriteVideoSample(paddedItem, writtenVideoFrames, videoFrameDurationHns);
-                            _finalSourceTimestampHns = paddedHns;
-                            lock (_auditLock)
-                            {
-                                _vfrNormalizedSampleTimes.Add((paddedHns - _initialSourceTimestampHns) / 10_000_000.0);
-                            }
-                        }
-                        else
-                        {
-                            WriteVideoSample(lastVideoItem, writtenVideoFrames, videoFrameDurationHns);
-                        }
+                        WriteVideoSample(lastVideoItem, writtenVideoFrames, videoFrameDurationHns);
                         writtenVideoFrames++;
                         _framesEncoded++;
                     }
@@ -963,8 +965,8 @@ public class NativeMediaFoundationRecorder : IRecorderBackend, IDisposable
 
         // 3. Compute measured start delay between audio and video
         long offsetHns = audioStartHns - videoStartHns;
-        // Sanity limit: If audio and video timestamps differ by more than 2.0s, clamp to avoid runaway silence
-        if (offsetHns > 20_000_000L || offsetHns < -20_000_000L)
+        // Sanity limit: Allow up to 3.5s of startup audio delay (cold USB audio endpoint spinup)
+        if (offsetHns > 35_000_000L || offsetHns < -35_000_000L)
         {
             Debug.WriteLine($"[NativeMediaFoundationRecorder] Out-of-bounds start offset ({offsetHns / 10_000.0:F2} ms). Clamping to 0.");
             offsetHns = 0;
@@ -973,11 +975,16 @@ public class NativeMediaFoundationRecorder : IRecorderBackend, IDisposable
         double offsetMs = offsetHns / 10_000.0;
         Debug.WriteLine($"[NativeMediaFoundationRecorder] Calibrated A/V start offset: {offsetMs:F2} ms ({offsetHns} hns)");
 
-        // 4. Prepend exact measured silence if audio started after video
+        // 4. Prepend exact measured silence if audio started after video, subtracting any silence already written
         if (offsetHns > 5000L) // > 0.5 ms
         {
-            long silenceFrames = (long)Math.Round((double)offsetHns * firstItem.SampleRate / 10_000_000.0);
-            WriteSilenceAudioFrames(silenceFrames, firstItem.SampleRate, firstItem.Channels);
+            long alreadyWrittenHns = (long)(_audioSamplesWritten * 10_000_000.0 / firstItem.SampleRate);
+            long remainingOffsetHns = offsetHns - alreadyWrittenHns;
+            if (remainingOffsetHns > 5000L)
+            {
+                long silenceFrames = (long)Math.Round((double)remainingOffsetHns * firstItem.SampleRate / 10_000_000.0);
+                WriteSilenceAudioFrames(silenceFrames, firstItem.SampleRate, firstItem.Channels);
+            }
         }
     }
 
@@ -985,9 +992,9 @@ public class NativeMediaFoundationRecorder : IRecorderBackend, IDisposable
     {
         if (_sinkWriter == null || totalFrames <= 0) return;
 
-        // Hard safety cap: never synthesize more than 150 ms of silence (e.g. 7,200 frames at 48kHz)
-        // to prevent runaway allocation loops or concealing major recording stalls.
-        long maxSafetyFrames = (long)(sampleRate * 0.150);
+        // Hard safety cap: never synthesize more than 3.5s of silence in a single call
+        // (e.g. 168,000 frames at 48kHz) to prevent runaway allocation loops while accommodating USB audio spinup.
+        long maxSafetyFrames = (long)(sampleRate * 3.5);
         if (totalFrames > maxSafetyFrames)
         {
             Debug.WriteLine($"[NativeMediaFoundationRecorder] Warning: Clamping excessive silence request ({totalFrames} frames) to safety cap ({maxSafetyFrames} frames).");
@@ -997,7 +1004,7 @@ public class NativeMediaFoundationRecorder : IRecorderBackend, IDisposable
         long remainingFrames = totalFrames;
         while (remainingFrames > 0)
         {
-            int chunkFrames = (int)Math.Min(1024, remainingFrames);
+            int chunkFrames = (int)Math.Min(4800, remainingFrames); // 100 ms chunks at 48kHz
             int byteCount = chunkFrames * channels * 2; // 16-bit PCM = 2 bytes per sample
             byte[] silenceData = new byte[byteCount];
 

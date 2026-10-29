@@ -45,6 +45,7 @@ public static class NativeBackendValidator
         results.Add(TestBoundedInterleavingStarvationImmunity());
         results.Add(TestTailSilenceSafetyCap());
         results.Add(TestInterruptedStreamGracefulShutdown());
+        results.Add(TestAudioLossNonBlockingVideo());
 
         return results;
     }
@@ -957,6 +958,104 @@ public static class NativeBackendValidator
             return new NativeBackendValidationResult
             {
                 Name = "13. Interrupted Stream Graceful Shutdown & Re-Stop Immunity",
+                Passed = false,
+                ExecutionMs = sw.Elapsed.TotalMilliseconds,
+                Details = $"Exception: {ex.Message}"
+            };
+        }
+        finally
+        {
+            try { if (File.Exists(tempMp4)) File.Delete(tempMp4); } catch { }
+        }
+    }
+
+    private static NativeBackendValidationResult TestAudioLossNonBlockingVideo()
+    {
+        var sw = Stopwatch.StartNew();
+        string tempMp4 = Path.Combine(Path.GetTempPath(), $"WebcamLab_Test_AudioLoss_{Guid.NewGuid():N}.mp4");
+        try
+        {
+            using var recorder = new NativeMediaFoundationRecorder();
+            recorder.Start(
+                tempMp4,
+                640,
+                480,
+                30.0,
+                RecordingMode.OriginalCamera,
+                null,
+                null,
+                "RGB32",
+                RecordingCadenceMode.Capture_Faithful_VFR,
+                enableAudio: true);
+
+            byte[] dummy = new byte[640 * 480 * 4];
+            GCHandle pin = GCHandle.Alloc(dummy, GCHandleType.Pinned);
+            try
+            {
+                IntPtr pBuf = pin.AddrOfPinnedObject();
+
+                // Phase 1: 5 synchronized video + audio samples
+                byte[] pcm = new byte[480 * 2 * 2]; // 10 ms audio chunks
+                for (int i = 0; i < 5; i++)
+                {
+                    recorder.WriteFrame(pBuf, dummy.Length, (long)(i * 333_333), Stopwatch.GetTimestamp());
+                    var chunk = new WebcamLab.Capture.Audio.AudioChunk(
+                        pcm,
+                        480,
+                        2,
+                        48000,
+                        (ulong)(i * 480),
+                        (ulong)Stopwatch.GetTimestamp(),
+                        0);
+                    recorder.EnqueueAudioChunkForTesting(chunk);
+                    Thread.Sleep(2);
+                }
+
+                // Phase 2: Audio completely severed. Feed 30 more video frames (1.0 second of video with ZERO audio)
+                for (int i = 5; i < 35; i++)
+                {
+                    recorder.WriteFrame(pBuf, dummy.Length, (long)(i * 333_333), Stopwatch.GetTimestamp());
+                    Thread.Sleep(2);
+                }
+            }
+            finally
+            {
+                pin.Free();
+            }
+
+            var stopWatch = Stopwatch.StartNew();
+            recorder.Stop();
+            stopWatch.Stop();
+
+            var tele = recorder.GetTelemetry();
+            bool fileExists = File.Exists(tempMp4);
+            long fileLength = fileExists ? new FileInfo(tempMp4).Length : 0;
+            bool hasMoov = Mp4TimestampInjector.HasValidMoovAtom(tempMp4);
+
+            sw.Stop();
+            // Video must NOT have been blocked: all 35 frames captured must be encoded, 0 dropped, stop < 2000ms
+            bool passed = fileExists &&
+                          fileLength > 2000 &&
+                          hasMoov &&
+                          tele.FramesCaptured == 35 &&
+                          tele.FramesEncoded >= 35 &&
+                          tele.DroppedFrames == 0 &&
+                          stopWatch.ElapsedMilliseconds < 2000;
+
+            return new NativeBackendValidationResult
+            {
+                Name = "14. Audio Stream Loss Resilience & Non-Blocking Video Contract",
+                Passed = passed,
+                ExecutionMs = sw.Elapsed.TotalMilliseconds,
+                Details = $"Captured={tele.FramesCaptured}, Encoded={tele.FramesEncoded}, Dropped={tele.DroppedFrames}, StopMs={stopWatch.ElapsedMilliseconds}, FileSize={fileLength:N0} bytes, HasMoov={hasMoov}"
+            };
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            return new NativeBackendValidationResult
+            {
+                Name = "14. Audio Stream Loss Resilience & Non-Blocking Video Contract",
                 Passed = false,
                 ExecutionMs = sw.Elapsed.TotalMilliseconds,
                 Details = $"Exception: {ex.Message}"
