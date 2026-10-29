@@ -9,7 +9,7 @@ This guide walks you through setting up and running WebcamLab on Windows.
 WebcamLab is distributed as a self-contained portable Windows application. It does not require administrative elevation, registry modifications, or external framework installations.
 
 ### Steps:
-1. Download `WebcamLab-v1.1.0-rc2-native-win-x64.zip`.
+1. Download `WebcamLab-v1.1.0-rc3-native-win-x64.zip`.
 2. Right-click the ZIP archive and select **Extract All...**.
 3. Choose a destination folder (e.g., `C:\Tools\WebcamLab` or `D:\WebcamLab`).
    > [!NOTE]
@@ -21,7 +21,7 @@ WebcamLab is distributed as a self-contained portable Windows application. It do
 ## 2. Directory Structure of the Portable Native Release
 
 ```
-WebcamLab-v1.1.0-rc2-native-win-x64/
+WebcamLab-v1.1.0-rc3-native-win-x64/
 ├── WebcamLab.exe              # Main Application Executable (WPF, .NET 10 x64)
 ├── WebcamLab.dll              # Managed application core assembly
 ├── Assets/                    # Application icons and branding assets
