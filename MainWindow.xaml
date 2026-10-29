@@ -1,0 +1,2086 @@
+<Window x:Class="WebcamLab.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:WebcamLab.ViewModels"
+        mc:Ignorable="d"
+        Title="WebcamLab — High-Fidelity Windows Camera Diagnostic &amp; Capture"
+        Icon="Assets/app.ico"
+        Height="850" Width="1350"
+        MinHeight="680" MinWidth="1050"
+        WindowStartupLocation="CenterScreen"
+        Background="#0A0E17"
+        Foreground="#F1F5F9"
+        FontFamily="Segoe UI, Segoe UI Variable, Arial">
+
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+
+        <Style x:Key="HeaderTitleStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="16" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="#F8FAFC" />
+        </Style>
+
+        <Style x:Key="SectionTitleStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="Foreground" Value="#94A3B8" />
+            <Setter Property="Margin" Value="0,0,0,8" />
+        </Style>
+
+        <Style x:Key="LabelStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Foreground" Value="#64748B" />
+        </Style>
+
+        <Style x:Key="ValueStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="#F1F5F9" />
+        </Style>
+
+        <Style x:Key="CardPanelStyle" TargetType="Border">
+            <Setter Property="Background" Value="#131B2E" />
+            <Setter Property="BorderBrush" Value="#1E293B" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="14" />
+        </Style>
+
+        <Style x:Key="PrimaryButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="#0284C7" />
+            <Setter Property="Foreground" Value="#FFFFFF" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Padding" Value="14,8" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                CornerRadius="6"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#0369A1" />
+                </Trigger>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Background" Value="#334155" />
+                    <Setter Property="Foreground" Value="#64748B" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="SecondaryButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="#1E293B" />
+            <Setter Property="Foreground" Value="#E2E8F0" />
+            <Setter Property="FontWeight" Value="Medium" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Padding" Value="12,7" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="#334155" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#334155" />
+                </Trigger>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Foreground" Value="#475569" />
+                    <Setter Property="BorderBrush" Value="#1E293B" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="DangerButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="#DC2626" />
+            <Setter Property="Foreground" Value="#FFFFFF" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Padding" Value="14,8" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                CornerRadius="6"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#B91C1C" />
+                </Trigger>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Background" Value="#334155" />
+                    <Setter Property="Foreground" Value="#64748B" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="DarkTabControlStyle" TargetType="TabControl">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" />
+        </Style>
+
+        <Style x:Key="DarkTabItemStyle" TargetType="TabItem">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="#94A3B8" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontWeight" Value="Medium" />
+            <Setter Property="Padding" Value="14,10" />
+            <Setter Property="Margin" Value="0,0,4,0" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabItem">
+                        <Border x:Name="TabBorder"
+                                Background="{TemplateBinding Background}"
+                                BorderThickness="0,0,0,2"
+                                BorderBrush="Transparent"
+                                Padding="{TemplateBinding Padding}"
+                                Cursor="Hand">
+                            <ContentPresenter ContentSource="Header" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="TabBorder" Property="BorderBrush" Value="#0EA5E9" />
+                                <Setter Property="Foreground" Value="#38BDF8" />
+                                <Setter Property="FontWeight" Value="SemiBold" />
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Foreground" Value="#F1F5F9" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="DarkComboBoxStyle" TargetType="ComboBox">
+            <Setter Property="Background" Value="#1E293B" />
+            <Setter Property="Foreground" Value="#0F172A" />
+            <Setter Property="BorderBrush" Value="#334155" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="6,4" />
+            <Setter Property="FontSize" Value="12" />
+        </Style>
+
+        <Style x:Key="DarkTextBoxStyle" TargetType="TextBox">
+            <Setter Property="Background" Value="#1E293B" />
+            <Setter Property="Foreground" Value="#F8FAFC" />
+            <Setter Property="CaretBrush" Value="#38BDF8" />
+            <Setter Property="BorderBrush" Value="#334155" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="6,4" />
+            <Setter Property="FontSize" Value="12" />
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" /> <!-- Top Header -->
+            <RowDefinition Height="*" />    <!-- Main Work Area -->
+            <RowDefinition Height="Auto" /> <!-- Error Banner (conditional) -->
+            <RowDefinition Height="Auto" /> <!-- Status Bar -->
+        </Grid.RowDefinitions>
+
+        <!-- 1. TOP HEADER -->
+        <Border Grid.Row="0" Background="#0F172A" BorderBrush="#1E293B" BorderThickness="0,0,0,1" Padding="18,12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Border Background="#0EA5E9" CornerRadius="6" Width="26" Height="26" Margin="0,0,10,0">
+                        <TextBlock Text="◎" Foreground="#0F172A" FontWeight="Bold" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <TextBlock Text="WebcamLab" FontSize="17" FontWeight="Bold" Foreground="#F8FAFC" VerticalAlignment="Center" />
+                    <TextBlock Text="PRO" FontSize="10" FontWeight="Bold" Foreground="#38BDF8" Background="#0C4A6E" Padding="5,2" Margin="8,0,0,0" VerticalAlignment="Center" />
+                </StackPanel>
+
+                <!-- Hardware Badge -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                    <!-- Dell Verified Pill -->
+                    <Border Background="#064E3B" BorderBrush="#059669" BorderThickness="1" CornerRadius="12" Padding="10,4" Margin="0,0,10,0"
+                            Visibility="{Binding IsDellDetected, Converter={StaticResource BoolToVis}}">
+                        <StackPanel Orientation="Horizontal">
+                            <Ellipse Width="6" Height="6" Fill="#34D399" Margin="0,0,6,0" VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding DellBadgeText}" Foreground="#A7F3D0" FontSize="11" FontWeight="SemiBold" />
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Capture Backend Indicator -->
+                    <Border Background="#1E293B" BorderBrush="#334155" BorderThickness="1" CornerRadius="12" Padding="10,4">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="BACKEND: " Foreground="#64748B" FontSize="11" FontWeight="Bold" />
+                            <TextBlock Text="{Binding CaptureBackend}" Foreground="#38BDF8" FontSize="11" FontWeight="Medium" />
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- 2. MAIN WORK AREA -->
+        <Grid Grid.Row="1" Margin="16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="65*" MinWidth="520" /> <!-- Left: Live Viewport -->
+                <ColumnDefinition Width="14" />                 <!-- Spacer -->
+                <ColumnDefinition Width="35*" MinWidth="380" /> <!-- Right: Tabs & Controls -->
+            </Grid.ColumnDefinitions>
+
+            <!-- LEFT: VIEWPORT & ON-SCREEN HUD -->
+            <Grid Grid.Column="0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <!-- Video Viewport Frame -->
+                <Border Grid.Row="0" Background="#050811" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="8" ClipToBounds="True">
+                    <Grid>
+                        <!-- When Stream is Inactive -->
+                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center"
+                                    Visibility="{Binding IsNotCapturing, Converter={StaticResource BoolToVis}}">
+                            <TextBlock Text="🎥" FontSize="48" HorizontalAlignment="Center" Margin="0,0,0,12" Opacity="0.4" />
+                            <TextBlock Text="Preview Stream Standby" FontSize="16" FontWeight="SemiBold" Foreground="#94A3B8" HorizontalAlignment="Center" />
+                            <TextBlock Text="Select a capture mode and click 'Start Preview' below" FontSize="12" Foreground="#64748B" HorizontalAlignment="Center" Margin="0,4,0,0" />
+                        </StackPanel>
+
+                        <!-- Live Video Stream -->
+                        <Image Source="{Binding PreviewBitmap}"
+                               Stretch="Uniform"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center"
+                               RenderOptions.BitmapScalingMode="HighQuality" />
+
+                        <!-- Top-Left HUD (Stream Info) -->
+                        <Border HorizontalAlignment="Left" VerticalAlignment="Top" Margin="12"
+                                Background="#B3050811" CornerRadius="6" Padding="10,6"
+                                Visibility="{Binding IsCapturing, Converter={StaticResource BoolToVis}}">
+                            <StackPanel Orientation="Horizontal">
+                                <Border Background="#0369A1" CornerRadius="4" Padding="6,2" Margin="0,0,8,0">
+                                    <TextBlock Text="{Binding ActivePixelFormat}" Foreground="#F0F9FF" FontWeight="Bold" FontSize="11" />
+                                </Border>
+                                <TextBlock Text="{Binding ActiveResolution}" Foreground="#F8FAFC" FontWeight="SemiBold" FontSize="12" VerticalAlignment="Center" Margin="0,0,8,0" />
+                                <TextBlock Text="•" Foreground="#64748B" Margin="0,0,8,0" VerticalAlignment="Center" />
+                                <TextBlock Text="{Binding CurrentFps}" Foreground="#38BDF8" FontWeight="Bold" FontSize="12" VerticalAlignment="Center" />
+                                <TextBlock Text=" FPS" Foreground="#64748B" FontSize="10" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Top-Right HUD (Recording Status) -->
+                        <Border HorizontalAlignment="Right" VerticalAlignment="Top" Margin="12"
+                                Background="#E67F1D1D" BorderBrush="#EF4444" BorderThickness="1" CornerRadius="6" Padding="10,6"
+                                Visibility="{Binding IsRecording, Converter={StaticResource BoolToVis}}">
+                            <StackPanel Orientation="Horizontal">
+                                <Ellipse Width="8" Height="8" Fill="#F87171" Margin="0,0,6,0" VerticalAlignment="Center" />
+                                <TextBlock Text="REC " Foreground="#FEE2E2" FontWeight="Bold" FontSize="11" />
+                                <TextBlock Text="{Binding RecordingDuration}" Foreground="#FFFFFF" FontWeight="SemiBold" FontSize="11" />
+                                <TextBlock Text="  |" Foreground="#FCA5A5" FontSize="11" Margin="0,0,6,0" />
+                                <TextBlock Text="{Binding RecordingModeBadgeText}" Foreground="#FEF08A" FontWeight="Bold" FontSize="11" />
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Top-Center HUD (Graded Look & False Color Indicators) -->
+                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Top" Margin="12" Orientation="Horizontal">
+                            <!-- Graded Look Mode Indicator -->
+                            <Border Background="#E60A0E17" BorderBrush="{Binding ViewportModeBrush}" BorderThickness="1" CornerRadius="6" Padding="10,6" Margin="0,0,8,0"
+                                    Visibility="{Binding GradedBadgeVisibility}"
+                                    Cursor="Hand" ToolTip="{Binding ViewportModeTooltip}">
+                                <Border.InputBindings>
+                                    <MouseBinding Gesture="LeftClick" Command="{Binding ToggleGradedPreviewCommand}" />
+                                </Border.InputBindings>
+                                <StackPanel Orientation="Horizontal">
+                                    <Ellipse Width="8" Height="8" Fill="{Binding ViewportModeBrush}" Margin="0,0,8,0" VerticalAlignment="Center" />
+                                    <TextBlock Text="{Binding ViewportModeBadge}" Foreground="{Binding ViewportModeBrush}" FontWeight="Bold" FontSize="11" />
+                                    <TextBlock Text=" (Click to Toggle)" Foreground="#94A3B8" FontSize="10" Margin="6,0,0,0" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Border>
+
+                            <!-- False Color Exposure Mode Indicator -->
+                            <Border Background="#E60A0E17" BorderBrush="{Binding FalseColorBadgeBrush}" BorderThickness="1" CornerRadius="6" Padding="10,6"
+                                    Visibility="{Binding FalseColorBadgeVisibility}"
+                                    Cursor="Hand" ToolTip="Click to toggle False Color overlay">
+                                <Border.InputBindings>
+                                    <MouseBinding Gesture="LeftClick" Command="{Binding ToggleFalseColorCommand}" />
+                                </Border.InputBindings>
+                                <StackPanel Orientation="Horizontal">
+                                    <Ellipse Width="8" Height="8" Fill="{Binding FalseColorBadgeBrush}" Margin="0,0,8,0" VerticalAlignment="Center" />
+                                    <TextBlock Text="{Binding FalseColorBadgeText}" Foreground="{Binding FalseColorBadgeBrush}" FontWeight="Bold" FontSize="11" />
+                                    <TextBlock Text=" (Click to Toggle)" Foreground="#94A3B8" FontSize="10" Margin="6,0,0,0" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <!-- Viewport Action Toolbar (Bottom of Viewport) -->
+                <Border Grid.Row="1" Background="#0F172A" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="8" Padding="12,10" Margin="0,10,0,0">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Quick Stream Trigger -->
+                        <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                            <Button Command="{Binding ToggleCaptureCommand}"
+                                    Style="{StaticResource PrimaryButtonStyle}"
+                                    Margin="0,0,8,0"
+                                    Width="120">
+                                <Button.Content>
+                                    <TextBlock Text="{Binding CaptureButtonText}" FontWeight="Bold" />
+                                </Button.Content>
+                            </Button>
+
+                            <Button Command="{Binding CaptureSnapshotCommand}"
+                                    Style="{StaticResource SecondaryButtonStyle}"
+                                    Margin="0,0,8,0">
+                                <TextBlock Text="{Binding SnapshotButtonText, FallbackValue='📸 Take Snapshot'}" />
+                            </Button>
+
+                            <!-- Phase 23: Multi-Frame Burst Still Enhancement Controls -->
+                            <Border Background="#131B2E" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="4" Padding="6,2" Margin="0,0,8,0" VerticalAlignment="Center"
+                                    ToolTip="Phase 23 Multi-Frame Enhancement: Sub-pixel aligned linear temporal fusion with zero-ghosting motion rejection. Ordinary single-frame snapshots remain untouched.">
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <CheckBox Content="Multi-Frame" IsChecked="{Binding IsMultiFrameEnhancementEnabled}"
+                                              Foreground="#E2E8F0" FontSize="11" VerticalAlignment="Center" Margin="2,0,6,0" />
+                                    <ComboBox ItemsSource="{Binding BurstSizes}" SelectedItem="{Binding SelectedBurstSize}"
+                                              IsEnabled="{Binding IsMultiFrameEnhancementEnabled}"
+                                              Background="#0F172A" Foreground="#38BDF8" BorderBrush="#334155" FontSize="11" Width="44" Height="22" VerticalAlignment="Center"
+                                              ToolTip="Number of genuine unique frames to collect and fuse (4, 8, or 12)" />
+                                    <TextBlock Text=" frames" Foreground="#64748B" FontSize="10" VerticalAlignment="Center" Margin="2,0,4,0" />
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Quick Action: View Enhanced Result if available -->
+                            <Button Command="{Binding OpenEnhancedStillCommand}"
+                                    Visibility="{Binding HasEnhancedComparison, Converter={StaticResource BoolToVis}}"
+                                    Style="{StaticResource SecondaryButtonStyle}"
+                                    Margin="0,0,8,0"
+                                    ToolTip="Opens the latest multi-frame enhanced still image in the default system viewer">
+                                <TextBlock Text="✨ View Enhanced" Foreground="#38BDF8" FontWeight="SemiBold" />
+                            </Button>
+
+                            <Button Command="{Binding ExportProcessedSnapshotCommand}"
+                                    Style="{StaticResource SecondaryButtonStyle}"
+                                    Margin="0,0,8,0"
+                                    ToolTip="Exports graded frame as lossless PNG with companion JSON metadata sidecar">
+                                <TextBlock Text="🎨 Graded PNG" />
+                            </Button>
+
+                            <!-- Recording Mode Selector -->
+                            <Border Background="#131B2E" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="4" Padding="6,2" Margin="0,0,6,0" VerticalAlignment="Center">
+                                <StackPanel Orientation="Horizontal">
+                                    <RadioButton Content="Original" IsChecked="{Binding IsOriginalRecordingSelected}"
+                                                 Foreground="#E2E8F0" FontSize="11" VerticalAlignment="Center" Margin="2,0,6,0"
+                                                 ToolTip="Encodes untouched camera frame directly from decoded buffer. Overlays and grading excluded." />
+                                    <RadioButton Content="Graded" IsChecked="{Binding IsGradedRecordingSelected}"
+                                                 Foreground="#38BDF8" FontSize="11" VerticalAlignment="Center" Margin="2,0,2,0"
+                                                 ToolTip="Bakes tone curves, exposure, contrast, saturation, and .cube LUT into video stream. Overlays excluded. Generates companion JSON sidecar." />
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Recording Cadence Mode Selector -->
+                            <Border Background="#131B2E" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="4" Padding="6,2" Margin="0,0,8,0" VerticalAlignment="Center">
+                                <StackPanel Orientation="Horizontal">
+                                    <RadioButton Content="Faithful VFR" IsChecked="{Binding IsCaptureFaithfulSelected}"
+                                                 Foreground="#34D399" FontSize="11" VerticalAlignment="Center" Margin="2,0,6,0"
+                                                 ToolTip="Capture-Faithful (VFR): Preserves genuine source timestamps with zero duplicate padding frames. Recommended for authentic sensor recording." />
+                                    <RadioButton Content="CFR 30fps" IsChecked="{Binding IsCfrCompatibilitySelected}"
+                                                 Foreground="#FBBF24" FontSize="11" VerticalAlignment="Center" Margin="2,0,2,0"
+                                                 ToolTip="CFR Compatibility: Pads duplicate frames when camera delivery is below 30 FPS to maintain a nominal 30 FPS timeline." />
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Recording Backend Engine Selector (Phase 33 Native Promotion) -->
+                            <Border Background="#131B2E" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="4" Padding="6,2" Margin="0,0,8,0" VerticalAlignment="Center">
+                                <StackPanel Orientation="Horizontal">
+                                    <RadioButton Content="Native MF (Default)" IsChecked="{Binding IsNativeMfBackendSelected}"
+                                                 Foreground="#38BDF8" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" Margin="2,0,6,0"
+                                                 ToolTip="Primary in-process Windows Media Foundation engine (IMFSinkWriter). Zero external binaries, uses Windows inbox H.264 &amp; AAC MFT encoders." />
+                                    <RadioButton Content="FFmpeg (Fallback)" IsChecked="{Binding IsFfmpegBackendSelected}"
+                                                 IsEnabled="{Binding IsFfmpegAvailable}"
+                                                 Foreground="#94A3B8" FontSize="11" VerticalAlignment="Center" Margin="2,0,2,0"
+                                                 ToolTip="Legacy FFmpeg subprocess fallback engine for comparison and regression testing. Requires ffmpeg.exe in application directory." />
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Audio Record Toggle & Live Dual Meter (Peak & RMS dBFS) + Clipping Pill -->
+                            <Border Background="#131B2E" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="4" Padding="6,3" Margin="0,0,8,0" VerticalAlignment="Center"
+                                    ToolTip="WASAPI Audio Monitor: Dual Peak &amp; RMS meters with 1.2s clipping visual hold">
+                                <StackPanel Orientation="Horizontal">
+                                    <CheckBox Content="Mic" IsChecked="{Binding IsAudioRecordingEnabled}"
+                                              Foreground="#E2E8F0" FontSize="11" VerticalAlignment="Center" Margin="2,0,6,0"
+                                              ToolTip="Enables hardware QPC timestamp-synchronized WASAPI audio capture in MP4" />
+
+                                    <!-- Stacked Dual Meter: Peak (Top) and RMS (Bottom) -->
+                                    <StackPanel VerticalAlignment="Center" Margin="0,0,6,0">
+                                        <!-- Peak Meter -->
+                                        <ProgressBar Width="50" Height="5" Minimum="0" Maximum="1" Value="{Binding AudioPeakLevel}"
+                                                     Foreground="#10B981" Background="#0F172A" BorderThickness="0"
+                                                     ToolTip="{Binding AudioPeakDbText, StringFormat='Peak: {0}'}" />
+                                        <!-- RMS Meter -->
+                                        <ProgressBar Width="50" Height="4" Minimum="0" Maximum="1" Value="{Binding AudioRmsLevel}"
+                                                     Foreground="#06B6D4" Background="#0F172A" BorderThickness="0" Margin="0,2,0,0"
+                                                     ToolTip="{Binding AudioRmsDbText, StringFormat='RMS: {0}'}" />
+                                    </StackPanel>
+
+                                    <!-- Numeric dBFS Readout -->
+                                    <TextBlock Text="{Binding AudioLevelText}" Foreground="#94A3B8" FontSize="10" VerticalAlignment="Center" Width="42" Margin="0,0,4,0" />
+
+                                    <!-- Clipping LED Pill -->
+                                    <Border CornerRadius="3" Padding="4,1" VerticalAlignment="Center"
+                                            ToolTip="Clipping Indicator (Peak >= -0.1 dBFS, held 1.2s)">
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <Setter Property="Background" Value="#1E293B" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsAudioClipping}" Value="True">
+                                                        <Setter Property="Background" Value="#EF4444" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <TextBlock Text="CLIP" FontSize="9" FontWeight="Bold">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Foreground" Value="#475569" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsAudioClipping}" Value="True">
+                                                            <Setter Property="Foreground" Value="#FFFFFF" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </Border>
+                                </StackPanel>
+                            </Border>
+
+                            <Button Command="{Binding ToggleRecordingCommand}"
+                                    Style="{StaticResource SecondaryButtonStyle}"
+                                    Margin="0,0,8,0">
+                                <StackPanel Orientation="Horizontal">
+                                    <Ellipse Width="6" Height="6" Fill="#EF4444" Margin="0,0,6,0" VerticalAlignment="Center" />
+                                    <TextBlock Text="{Binding RecordButtonText}" />
+                                </StackPanel>
+                            </Button>
+
+                            <!-- Telemetry Toggle Button -->
+                            <Button Command="{Binding ToggleTelemetryPanelCommand}"
+                                    Style="{StaticResource SecondaryButtonStyle}"
+                                    Margin="0,0,8,0"
+                                    ToolTip="Toggle Real-Time Telemetry Dashboard Drawer">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="📊 Telemetry" />
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+
+                        <!-- Open Folder -->
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                            <Button Command="{Binding OpenCapturesFolderCommand}"
+                                    Style="{StaticResource SecondaryButtonStyle}">
+                                <TextBlock Text="📁 Open Folder" />
+                            </Button>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <!-- Real-Time Recording & Hardware Telemetry Panel (Phase 22) -->
+                <Border Grid.Row="2" Background="#0A0E17" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,10,0,0"
+                        Visibility="{Binding IsTelemetryExpanded, Converter={StaticResource BoolToVis}}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <!-- Header -->
+                        <DockPanel Grid.Row="0" Margin="0,0,0,8">
+                            <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
+                                <TextBlock Text="LIVE RECORDING &amp; HARDWARE TELEMETRY" Style="{StaticResource SectionTitleStyle}" Margin="0,0,8,0" VerticalAlignment="Center" />
+                                <Border Background="#0369A1" CornerRadius="4" Padding="6,2" VerticalAlignment="Center">
+                                    <TextBlock Text="Schema 3.0" Foreground="#E0F2FE" FontSize="10" FontWeight="Bold" />
+                                </Border>
+                            </StackPanel>
+                            <Button DockPanel.Dock="Right" Command="{Binding ToggleTelemetryPanelCommand}" Style="{StaticResource SecondaryButtonStyle}" Padding="6,2" HorizontalAlignment="Right">
+                                <TextBlock Text="✕ Close" FontSize="10" />
+                            </Button>
+                        </DockPanel>
+
+                        <!-- Telemetry Metrics Grid -->
+                        <Grid Grid.Row="1">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Column 1: Video Engine & Timing -->
+                            <Border Grid.Column="0" Background="#0F172A" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="6" Padding="10" Margin="0,0,6,0">
+                                <StackPanel>
+                                    <TextBlock Text="VIDEO &amp; TIMING" FontSize="11" FontWeight="Bold" Foreground="#38BDF8" Margin="0,0,0,6" />
+                                    <DockPanel Margin="0,0,0,3">
+                                        <TextBlock Text="Source Delivery:" Style="{StaticResource LabelStyle}" />
+                                        <TextBlock Text="{Binding TelemetryLiveFps}" Style="{StaticResource ValueStyle}" HorizontalAlignment="Right" />
+                                    </DockPanel>
+                                    <DockPanel Margin="0,0,0,3">
+                                        <TextBlock Text="Target Cadence:" Style="{StaticResource LabelStyle}" />
+                                        <TextBlock Text="{Binding TelemetryTargetFps}" Style="{StaticResource ValueStyle}" HorizontalAlignment="Right" />
+                                    </DockPanel>
+                                    <DockPanel Margin="0,0,0,3">
+                                        <TextBlock Text="Cadence Mode:" Style="{StaticResource LabelStyle}" />
+                                        <TextBlock Text="{Binding TelemetryCadenceMode}" Style="{StaticResource ValueStyle}" HorizontalAlignment="Right" />
+                                    </DockPanel>
+                                    <DockPanel>
+                                        <TextBlock Text="Record Mode:" Style="{StaticResource LabelStyle}" />
+                                        <TextBlock Text="{Binding TelemetryRecordingMode}" Style="{StaticResource ValueStyle}" HorizontalAlignment="Right" />
+                                    </DockPanel>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Column 2: Frames & Buffer Stats -->
+                            <Border Grid.Column="1" Background="#0F172A" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="6" Padding="10" Margin="0,0,6,0">
+                                <StackPanel>
+                                    <TextBlock Text="FRAME COUNTERS" FontSize="11" FontWeight="Bold" Foreground="#34D399" Margin="0,0,0,6" />
+                                    <DockPanel Margin="0,0,0,3">
+                                        <TextBlock Text="Captured Frames:" Style="{StaticResource LabelStyle}" />
+                                        <TextBlock Text="{Binding TelemetryCapturedFrames}" Style="{StaticResource ValueStyle}" HorizontalAlignment="Right" />
+                                    </DockPanel>
+                                    <DockPanel Margin="0,0,0,3">
+                                        <TextBlock Text="Encoded Frames:" Style="{StaticResource LabelStyle}" />
+                                        <TextBlock Text="{Binding TelemetryEncodedFrames}" Style="{StaticResource ValueStyle}" HorizontalAlignment="Right" />
+                                    </DockPanel>
+                                    <DockPanel Margin="0,0,0,3">
+                                        <TextBlock Text="CFR Duplicates:" Style="{StaticResource LabelStyle}" />
+                                        <TextBlock Text="{Binding TelemetryPaddedDuplicates}" Style="{StaticResource ValueStyle}" HorizontalAlignment="Right" />
+                                    </DockPanel>
+                                    <DockPanel>
+                                        <TextBlock Text="Dropped Frames:" Style="{StaticResource LabelStyle}" />
+                                        <TextBlock Text="{Binding TelemetryDroppedFrames}" Style="{StaticResource ValueStyle}" HorizontalAlignment="Right" />
+                                    </DockPanel>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Column 3: Audio & Sync -->
+                            <Border Grid.Column="2" Background="#0F172A" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="6" Padding="10" Margin="0,0,6,0">
+                                <StackPanel>
+                                    <TextBlock Text="AUDIO &amp; A/V SYNC" FontSize="11" FontWeight="Bold" Foreground="#FBBF24" Margin="0,0,0,6" />
+                                    <DockPanel Margin="0,0,0,3">
+                                        <TextBlock Text="Capture State:" Style="{StaticResource LabelStyle}" />
+                                        <TextBlock Text="{Binding TelemetryAudioState}" Style="{StaticResource ValueStyle}" HorizontalAlignment="Right" />
+                                    </DockPanel>
+                                    <DockPanel Margin="0,0,0,3">
+                                        <TextBlock Text="Discontinuities:" Style="{StaticResource LabelStyle}" />
+                                        <TextBlock Text="{Binding TelemetryAudioDiscontinuities}" Style="{StaticResource ValueStyle}" HorizontalAlignment="Right" />
+                                    </DockPanel>
+                                    <DockPanel Margin="0,0,0,3">
+                                        <TextBlock Text="A/V Offset (Init):" Style="{StaticResource LabelStyle}" />
+                                        <TextBlock Text="{Binding TelemetryAvSyncOffset}" Style="{StaticResource ValueStyle}" HorizontalAlignment="Right" />
+                                    </DockPanel>
+                                    <DockPanel>
+                                        <TextBlock Text="Duration:" Style="{StaticResource LabelStyle}" />
+                                        <TextBlock Text="{Binding TelemetryDuration}" Style="{StaticResource ValueStyle}" HorizontalAlignment="Right" />
+                                    </DockPanel>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Column 4: Cinema Look & ISP State -->
+                            <Border Grid.Column="3" Background="#0F172A" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="6" Padding="10">
+                                <StackPanel>
+                                    <TextBlock Text="LOOK &amp; ISP HARDWARE" FontSize="11" FontWeight="Bold" Foreground="#A78BFA" Margin="0,0,0,6" />
+                                    <DockPanel Margin="0,0,0,3">
+                                        <TextBlock Text="Active Look:" Style="{StaticResource LabelStyle}" />
+                                        <TextBlock Text="{Binding TelemetryActiveLook}" Style="{StaticResource ValueStyle}" HorizontalAlignment="Right" />
+                                    </DockPanel>
+                                    <DockPanel Margin="0,0,0,3">
+                                        <TextBlock Text="LUT Status:" Style="{StaticResource LabelStyle}" />
+                                        <TextBlock Text="{Binding TelemetryLutStatus}" Style="{StaticResource ValueStyle}" HorizontalAlignment="Right" />
+                                    </DockPanel>
+                                    <DockPanel Margin="0,0,0,3">
+                                        <TextBlock Text="Realtek Control 2:" Style="{StaticResource LabelStyle}" />
+                                        <TextBlock Text="{Binding TelemetryRealtekState}" Style="{StaticResource ValueStyle}" HorizontalAlignment="Right" />
+                                    </DockPanel>
+                                    <DockPanel>
+                                        <TextBlock Text="ISP Isolation:" Style="{StaticResource LabelStyle}" />
+                                        <TextBlock Text="Verified (0 writes)" Style="{StaticResource ValueStyle}" Foreground="#10B981" HorizontalAlignment="Right" />
+                                    </DockPanel>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </Grid>
+                </Border>
+            </Grid>
+
+            <!-- RIGHT: TABBED INSPECTION & CONFIGURATION PANELS -->
+            <Border Grid.Column="2" Style="{StaticResource CardPanelStyle}" Padding="12">
+                <TabControl Style="{StaticResource DarkTabControlStyle}">
+
+                    <!-- TAB 1: DEVICE & CAPTURE CONFIG -->
+                    <TabItem Header="Stream Setup" Style="{StaticResource DarkTabItemStyle}">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,10,0,0">
+                            <StackPanel>
+                                <!-- Camera Selector -->
+                                <TextBlock Text="CAMERA SELECTION" Style="{StaticResource SectionTitleStyle}" />
+                                <Grid Margin="0,0,0,14">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <ComboBox Grid.Column="0"
+                                              ItemsSource="{Binding Cameras}"
+                                              SelectedItem="{Binding SelectedCamera}"
+                                              DisplayMemberPath="DisplayName"
+                                              Background="#1E293B" Foreground="#000000"
+                                              Height="32" Padding="8,4" />
+                                    <Button Grid.Column="1"
+                                            Command="{Binding RefreshCamerasCommand}"
+                                            Content="↻ Refresh"
+                                            Style="{StaticResource SecondaryButtonStyle}"
+                                            Margin="8,0,0,0" Height="32" />
+                                </Grid>
+
+                                <!-- Format / Mode Selector -->
+                                <TextBlock Text="CAPTURE FORMAT &amp; STREAM MODE" Style="{StaticResource SectionTitleStyle}" Margin="0,8,0,8" />
+                                <ComboBox ItemsSource="{Binding Formats}"
+                                          SelectedItem="{Binding SelectedFormat}"
+                                          DisplayMemberPath="DisplayString"
+                                          Background="#1E293B" Foreground="#000000"
+                                          Height="34" Padding="8,4" Margin="0,0,0,14" />
+
+                                <!-- Selected Mode Specs Card -->
+                                <Border Background="#0A0E17" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,0,0,14">
+                                    <StackPanel>
+                                        <TextBlock Text="SELECTED MODE PROFILE" FontSize="11" FontWeight="Bold" Foreground="#38BDF8" Margin="0,0,0,8" />
+                                        <Grid Margin="0,2">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="120" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="Pixel Encoding:" Style="{StaticResource LabelStyle}" />
+                                            <TextBlock Grid.Column="1" Text="{Binding SelectedFormat.FormatCategory}" Style="{StaticResource ValueStyle}" />
+                                        </Grid>
+                                        <Grid Margin="0,2">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="120" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="Native Resolution:" Style="{StaticResource LabelStyle}" />
+                                            <TextBlock Grid.Column="1" Text="{Binding SelectedFormat.ResolutionText}" Style="{StaticResource ValueStyle}" />
+                                        </Grid>
+                                        <Grid Margin="0,2">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="120" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="Hardware FPS:" Style="{StaticResource LabelStyle}" />
+                                            <TextBlock Grid.Column="1" Text="{Binding SelectedFormat.FrameRateText}" Style="{StaticResource ValueStyle}" />
+                                        </Grid>
+                                        <Grid Margin="0,2">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="120" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="Nominal Range:" Style="{StaticResource LabelStyle}" />
+                                            <TextBlock Grid.Column="1" Text="{Binding SelectedFormat.NominalRangeText}" Foreground="#38BDF8" FontWeight="SemiBold" FontSize="11" />
+                                        </Grid>
+                                        <Grid Margin="0,2">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="120" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="Sensor RAW Status:" Style="{StaticResource LabelStyle}" />
+                                            <TextBlock Grid.Column="1" Text="Non-RAW (ISP YUV Output)" Foreground="#FBBF24" FontWeight="SemiBold" FontSize="12" />
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Still Capture & Video Recording Profiles -->
+                                <TextBlock Text="STILL CAPTURE &amp; RECORDING FORMAT" Style="{StaticResource SectionTitleStyle}" Margin="0,8,0,8" />
+                                <Border Background="#0A0E17" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="6" Padding="12">
+                                    <StackPanel>
+                                        <TextBlock Text="• Still Capture: Saves lossless PNG or direct JPEG bitstream from camera frame." FontSize="11" Foreground="#94A3B8" TextWrapping="Wrap" Margin="0,0,0,4" />
+                                        <TextBlock Text="• Original Recording: Streams untouched decoded BGR32 frames directly to FFmpeg x264 MP4 container." FontSize="11" Foreground="#94A3B8" TextWrapping="Wrap" Margin="0,0,0,4" />
+                                        <TextBlock Text="• Graded Recording: Bakes active software look (tone curve, exposure, saturation, .cube LUT) into H.264 stream with companion JSON sidecar." FontSize="11" Foreground="#94A3B8" TextWrapping="Wrap" Margin="0,0,0,4" />
+                                        <TextBlock Text="• Non-destructive Guarantee: False color, zebras, and HUD overlays are NEVER baked into either recording." FontSize="11" Foreground="#38BDF8" TextWrapping="Wrap" Margin="0,0,0,4" />
+                                        <TextBlock Text="• Output Directory: Saved in your Pictures and Videos WebcamLab folders." FontSize="11" Foreground="#94A3B8" TextWrapping="Wrap" />
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Audio Capture & Synchronization (Phase 16) -->
+                                <DockPanel Margin="0,12,0,6">
+                                    <TextBlock Text="AUDIO CAPTURE &amp; SYNCHRONIZATION" Style="{StaticResource SectionTitleStyle}" VerticalAlignment="Center" />
+                                    <Button DockPanel.Dock="Right" Command="{Binding RefreshAudioDevicesCommand}" Style="{StaticResource SecondaryButtonStyle}" Padding="6,2" HorizontalAlignment="Right">
+                                        <TextBlock Text="↻ Refresh" FontSize="10" />
+                                    </Button>
+                                </DockPanel>
+                                <Border Background="#0A0E17" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,0,0,10">
+                                    <StackPanel>
+                                        <DockPanel LastChildFill="True" Margin="0,0,0,8">
+                                            <TextBlock Text="Enable Audio Recording:" Style="{StaticResource LabelStyle}" VerticalAlignment="Center" Width="140" />
+                                            <CheckBox IsChecked="{Binding IsAudioRecordingEnabled}" Content="Record Audio Track (AAC-LC 192 kbps)" Foreground="#E2E8F0" FontSize="11" VerticalAlignment="Center" />
+                                        </DockPanel>
+
+                                        <DockPanel LastChildFill="True" Margin="0,0,0,8">
+                                            <TextBlock Text="Microphone Endpoint:" Style="{StaticResource LabelStyle}" VerticalAlignment="Center" Width="140" />
+                                            <ComboBox ItemsSource="{Binding AudioDevices}" SelectedItem="{Binding SelectedAudioDevice}" DisplayMemberPath="DisplayName" Style="{StaticResource DarkComboBoxStyle}" />
+                                        </DockPanel>
+
+                                        <!-- Device Format & Status -->
+                                        <Grid Margin="0,2,0,6">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="140" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="Hardware Endpoint:" Style="{StaticResource LabelStyle}" />
+                                            <TextBlock Grid.Column="1" Text="{Binding AudioDeviceSummaryText}" Foreground="#38BDF8" FontSize="11" TextWrapping="Wrap" />
+                                        </Grid>
+
+                                        <!-- Live Peak & VU Meter -->
+                                        <Grid Margin="0,4,0,4">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="140" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="55" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="Live Level (WASAPI):" Style="{StaticResource LabelStyle}" VerticalAlignment="Center" />
+                                            <ProgressBar Grid.Column="1" Height="10" Minimum="0" Maximum="1" Value="{Binding AudioPeakLevel}" Foreground="#10B981" Background="#1E293B" BorderThickness="0" VerticalAlignment="Center" Margin="0,0,8,0" />
+                                            <TextBlock Grid.Column="2" Text="{Binding AudioLevelText}" Style="{StaticResource ValueStyle}" VerticalAlignment="Center" HorizontalAlignment="Right" />
+                                        </Grid>
+
+                                        <Border Background="#131B2E" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="4" Padding="8,6" Margin="0,6,0,0">
+                                            <TextBlock Text="  A/V Synchronization: Media Foundation sample timestamps and WASAPI device QPC positions are mapped to a unified monotonic clock. Muxed into MP4 with sub-frame alignment." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" />
+                                        </Border>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </TabItem>
+
+                    <!-- TAB 2: HARDWARE CONTROLS -->
+                    <TabItem Header="Controls" Style="{StaticResource DarkTabItemStyle}">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,10,0,0">
+                            <StackPanel>
+                                <DockPanel Margin="0,0,0,10">
+                                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                        <Button Command="{Binding RestoreInitialSettingsCommand}"
+                                                Style="{StaticResource SecondaryButtonStyle}"
+                                                Padding="8,4"
+                                                Margin="0,0,6,0"
+                                                ToolTip="Restores camera controls to the values recorded at session start"
+                                                Content="↺ Restore Initial" />
+                                        <Button Command="{Binding ResetAllControlsCommand}"
+                                                Style="{StaticResource SecondaryButtonStyle}"
+                                                Padding="8,4"
+                                                ToolTip="Resets camera controls to factory default values"
+                                                Content="⚙ Factory Defaults" />
+                                    </StackPanel>
+                                    <TextBlock Text="CONFIRMED HARDWARE CONTROLS" Style="{StaticResource SectionTitleStyle}" VerticalAlignment="Center" />
+                                </DockPanel>
+
+                                <TextBlock Text="Physical DSP/ISP parameters accepted by the Dell webcam driver:" FontSize="11" Foreground="#64748B" Margin="0,0,0,8" />
+
+                                <ItemsControl ItemsSource="{Binding SupportedControls}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Background="#0A0E17" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="6" Padding="10" Margin="0,0,0,8">
+                                                <StackPanel>
+                                                    <!-- Property Header -->
+                                                    <DockPanel Margin="0,0,0,4">
+                                                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                                            <CheckBox Content="Auto"
+                                                                      IsChecked="{Binding IsAuto, Mode=TwoWay}"
+                                                                      Visibility="{Binding SupportsAuto, Converter={StaticResource BoolToVis}}"
+                                                                      Foreground="#38BDF8" FontSize="11" VerticalAlignment="Center" Margin="0,0,8,0" />
+                                                            <Border Background="#0284C7" CornerRadius="3" Padding="6,1" Margin="0,0,6,0">
+                                                                <TextBlock Text="{Binding DisplayValue}" Foreground="#FFFFFF" FontWeight="Bold" FontSize="11" />
+                                                            </Border>
+                                                            <Button Command="{Binding DataContext.RestoreInitialPropertyCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                    CommandParameter="{Binding}"
+                                                                    Style="{StaticResource SecondaryButtonStyle}"
+                                                                    Padding="5,2" FontSize="10" Margin="0,0,3,0" Content="↺" ToolTip="Restore session initial value" />
+                                                            <Button Command="{Binding DataContext.ResetPropertyCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                    CommandParameter="{Binding}"
+                                                                    Style="{StaticResource SecondaryButtonStyle}"
+                                                                    Padding="5,2" FontSize="10" Content="⚙" ToolTip="Reset to factory default" />
+                                                        </StackPanel>
+                                                        <TextBlock Text="{Binding Name}" Foreground="#F8FAFC" FontWeight="SemiBold" FontSize="12" VerticalAlignment="Center" />
+                                                    </DockPanel>
+
+                                                    <!-- Description & Range -->
+                                                    <TextBlock Text="{Binding Description}" Foreground="#94A3B8" FontSize="10" Margin="0,0,0,2" />
+                                                    <TextBlock Text="{Binding RangeString}" Foreground="#64748B" FontSize="10" Margin="0,0,0,4" />
+
+                                                    <!-- Slider -->
+                                                    <Slider Minimum="{Binding Min}"
+                                                            Maximum="{Binding Max}"
+                                                            SmallChange="{Binding Step}"
+                                                            LargeChange="{Binding Step}"
+                                                            Value="{Binding CurrentValue, Mode=TwoWay}"
+                                                            IsEnabled="{Binding IsManual}"
+                                                            Foreground="#38BDF8"
+                                                            Margin="0,2,0,4" />
+
+                                                    <!-- Status / Confirmation -->
+                                                    <TextBlock Text="{Binding StatusMessage}" Foreground="#34D399" FontSize="10" />
+                                                </StackPanel>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+
+                                <!-- EXPERIMENTAL REALTEK ISP PROCESSING CONTROL (PHASE 15) -->
+                                <Border Background="#0B132B" BorderBrush="#38BDF8" BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,4,0,12"
+                                        Visibility="{Binding IsRealtekProcessingSupported, Converter={StaticResource BoolToVis}}">
+                                    <StackPanel>
+                                        <!-- Header -->
+                                        <DockPanel Margin="0,0,0,6">
+                                            <Border DockPanel.Dock="Right" Background="#0284C7" CornerRadius="3" Padding="6,2">
+                                                <TextBlock Text="{Binding RealtekReadBackText, StringFormat='Read-Back: {0}'}" Foreground="#FFFFFF" FontWeight="Bold" FontSize="11" />
+                                            </Border>
+                                            <TextBlock Text="REALTEK RTS5875 PROCESSING CONTROL [EXPERIMENTAL]" Style="{StaticResource SectionTitleStyle}" Foreground="#38BDF8" VerticalAlignment="Center" />
+                                        </DockPanel>
+
+                                        <TextBlock Text="Undocumented Extension Unit 7 Control 2 (Realtek ISP Post-Debayer Filter)" FontSize="11" Foreground="#94A3B8" FontWeight="SemiBold" Margin="0,0,0,3" />
+                                        <TextBlock Text="Phase 14 &amp; 15 physical tests demonstrated that mutating Control 2 modulates high-frequency edge energy and temporal noise on uncompressed 1080p YUY2. In MJPEG, hardware JPEG compression suppresses observable effect." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,0,0,8" />
+
+                                        <!-- Format Compatibility Note Banner -->
+                                        <Border Background="#1E293B" CornerRadius="4" Padding="8,5" Margin="0,0,0,8">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="ℹ  " Foreground="#38BDF8" FontSize="11" FontWeight="Bold" />
+                                                <TextBlock Text="{Binding RealtekFormatNote}" FontSize="10" Foreground="#E2E8F0" TextWrapping="Wrap" />
+                                            </StackPanel>
+                                        </Border>
+
+                                        <!-- Radio Options -->
+                                        <StackPanel Margin="0,0,0,8" IsEnabled="{Binding IsRealtekFormatCompatible}">
+                                            <!-- Option 1: Standard Realtek Processing -->
+                                            <RadioButton IsChecked="{Binding IsRealtekStandardModeSelected, Mode=TwoWay}"
+                                                         GroupName="RealtekIspMode"
+                                                         Foreground="#F8FAFC"
+                                                         Margin="0,0,0,6">
+                                                <StackPanel Margin="4,0,0,0">
+                                                    <TextBlock Text="Standard Realtek Processing (0x01)" FontWeight="SemiBold" FontSize="11" Foreground="#F8FAFC" />
+                                                    <TextBlock Text="Restores observed factory baseline state with active post-debayer edge shaping and spatial sharpening." FontSize="10" Foreground="#94A3B8" TextWrapping="Wrap" />
+                                                </StackPanel>
+                                            </RadioButton>
+
+                                            <!-- Option 2: Reduced Detail Processing -->
+                                            <RadioButton IsChecked="{Binding IsRealtekReducedDetailSelected, Mode=TwoWay}"
+                                                         GroupName="RealtekIspMode"
+                                                         Foreground="#F8FAFC"
+                                                         Margin="0,0,0,4">
+                                                <StackPanel Margin="4,0,0,0">
+                                                    <TextBlock Text="Reduced Edge / Detail Processing (0x00) [Experimental]" FontWeight="SemiBold" FontSize="11" Foreground="#F59E0B" />
+                                                    <TextBlock Text="Reduces high-frequency edge gradients (Sobel energy) and unmasks raw sensor temporal noise on uncompressed YUY2." FontSize="10" Foreground="#94A3B8" TextWrapping="Wrap" />
+                                                </StackPanel>
+                                            </RadioButton>
+                                        </StackPanel>
+
+                                        <!-- Action Buttons -->
+                                        <DockPanel Margin="0,4,0,0">
+                                            <Button DockPanel.Dock="Right"
+                                                    Command="{Binding RestoreRealtekBaselineCommand}"
+                                                    Style="{StaticResource SecondaryButtonStyle}"
+                                                    Padding="10,4"
+                                                    Content="↺ Restore Baseline (0x01)"
+                                                    ToolTip="Immediately restores the initial factory baseline value (0x01)" />
+                                            <Button Command="{Binding ApplyRealtekProcessingCommand}"
+                                                    Style="{StaticResource PrimaryButtonStyle}"
+                                                    Padding="12,4"
+                                                    HorizontalAlignment="Left"
+                                                    Content="Apply Selected Mode"
+                                                    ToolTip="Writes target value to Realtek Extension Unit 7 Control 2 and verifies via read-back"
+                                                    IsEnabled="{Binding IsRealtekFormatCompatible}" />
+                                        </DockPanel>
+
+                                        <!-- Feedback / Status Message -->
+                                        <TextBlock Text="{Binding RealtekFeedbackMessage}"
+                                                   Visibility="{Binding HasRealtekFeedback, Converter={StaticResource BoolToVis}}"
+                                                   Foreground="#34D399"
+                                                   FontSize="10"
+                                                   Margin="0,6,0,0"
+                                                   TextWrapping="Wrap" />
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Unsupported / Unexposed Hardware Controls -->
+                                <TextBlock Text="UNEXPOSED / UNSUPPORTED HARDWARE CONTROLS" Style="{StaticResource SectionTitleStyle}" Margin="0,12,0,6" />
+                                <TextBlock Text="Standard interfaces queried and confirmed unsupported by hardware/driver:" FontSize="11" Foreground="#64748B" Margin="0,0,0,8" />
+
+                                <ItemsControl ItemsSource="{Binding UnsupportedControls}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Background="#0D1117" BorderBrush="#21262D" BorderThickness="1" CornerRadius="6" Padding="8,6" Margin="0,0,0,4">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="130" />
+                                                        <ColumnDefinition Width="*" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Grid.Column="0" Text="{Binding Name}" Foreground="#94A3B8" FontSize="11" FontWeight="Medium" />
+                                                    <TextBlock Grid.Column="1" Text="{Binding DiagnosticDetails}" Foreground="#64748B" FontSize="10" TextWrapping="Wrap" />
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </TabItem>
+
+                    <!-- TAB 3: CAPTURE PRESETS -->
+                    <TabItem Header="Presets" Style="{StaticResource DarkTabItemStyle}">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,10,0,0">
+                            <StackPanel>
+                                <!-- Presets Header Card -->
+                                <Border Background="#0A0E17" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,0,0,10">
+                                    <StackPanel>
+                                        <TextBlock Text="CAPTURE PRESET MANAGER" Style="{StaticResource SectionTitleStyle}" Margin="0,0,0,4" />
+                                        <TextBlock Text="Save, restore, and transfer hardware picture adjustments and repeatable camera looks."
+                                                   FontSize="11" Foreground="#64748B" Margin="0,0,0,10" />
+
+                                        <!-- Preset Selector & Badges -->
+                                        <TextBlock Text="Active Profile:" Style="{StaticResource LabelStyle}" Margin="0,0,0,4" />
+                                        <DockPanel Margin="0,0,0,8">
+                                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Margin="8,0,0,0">
+                                                <TextBlock Text="{Binding PresetModifiedBadge}" Foreground="#F59E0B" FontWeight="Bold" FontSize="11" Margin="0,0,6,0" VerticalAlignment="Center" />
+                                                <Border Background="#1E293B" CornerRadius="4" Padding="6,2" VerticalAlignment="Center">
+                                                    <TextBlock FontSize="10" FontWeight="SemiBold">
+                                                        <TextBlock.Style>
+                                                            <Style TargetType="TextBlock">
+                                                                <Setter Property="Text" Value="User Custom" />
+                                                                <Setter Property="Foreground" Value="#38BDF8" />
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding SelectedPreset.IsBuiltIn}" Value="True">
+                                                                        <Setter Property="Text" Value="Built-In Starter" />
+                                                                        <Setter Property="Foreground" Value="#10B981" />
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </TextBlock.Style>
+                                                    </TextBlock>
+                                                </Border>
+                                            </StackPanel>
+                                            <ComboBox ItemsSource="{Binding Presets}"
+                                                      SelectedItem="{Binding SelectedPreset}"
+                                                      DisplayMemberPath="Name"
+                                                      Background="#1E293B" Foreground="#000000"
+                                                      Height="32" Padding="8,4" />
+                                        </DockPanel>
+
+                                        <!-- Preset Description -->
+                                        <TextBlock Text="{Binding SelectedPreset.Description}"
+                                                   FontSize="11" FontStyle="Italic" Foreground="#94A3B8"
+                                                   Margin="0,0,0,10" TextWrapping="Wrap" />
+
+                                        <!-- Action Buttons Grid -->
+                                        <Grid Margin="0,0,0,6">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="2*" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <!-- Apply Preset -->
+                                            <Button Grid.Column="0"
+                                                    Command="{Binding ApplySelectedPresetCommand}"
+                                                    Style="{StaticResource PrimaryButtonStyle}"
+                                                    ToolTip="Safely writes preset values to camera DSP and confirms readback"
+                                                    Content="▶ Apply Preset"
+                                                    Margin="0,0,4,0" />
+
+                                            <!-- Duplicate Preset -->
+                                            <Button Grid.Column="1"
+                                                    Command="{Binding DuplicatePresetCommand}"
+                                                    Style="{StaticResource SecondaryButtonStyle}"
+                                                    ToolTip="Duplicates selected preset as an editable user copy"
+                                                    Content="⎘ Copy"
+                                                    Margin="2,0,2,0" />
+
+                                            <!-- Restore Session Baseline -->
+                                            <Button Grid.Column="2"
+                                                    Command="{Binding RestoreBaselineSettingsCommand}"
+                                                    Style="{StaticResource SecondaryButtonStyle}"
+                                                    ToolTip="Restores settings recorded when camera was first connected"
+                                                    Content="↺ Baseline"
+                                                    Margin="4,0,0,0" />
+                                        </Grid>
+
+                                        <!-- Secondary User Preset Tools -->
+                                        <DockPanel Margin="0,4,0,0">
+                                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                                <Button Command="{Binding ExportPresetCommand}"
+                                                        Style="{StaticResource SecondaryButtonStyle}"
+                                                        Padding="8,4" Margin="0,0,4,0"
+                                                        ToolTip="Export preset to JSON file"
+                                                        Content="↑ Export" />
+                                                <Button Command="{Binding ImportPresetCommand}"
+                                                        Style="{StaticResource SecondaryButtonStyle}"
+                                                        Padding="8,4"
+                                                        ToolTip="Import preset from JSON file"
+                                                        Content="↓ Import" />
+                                            </StackPanel>
+
+                                            <StackPanel Orientation="Horizontal" Visibility="{Binding IsUserPresetSelected, Converter={StaticResource BoolToVis}}">
+                                                <Button Command="{Binding UpdateUserPresetCommand}"
+                                                        Style="{StaticResource SecondaryButtonStyle}"
+                                                        Padding="8,4" Margin="0,0,4,0"
+                                                        ToolTip="Overwrites this user preset with current live camera settings"
+                                                        Content="💾 Update Live" />
+                                                <Button Command="{Binding DeletePresetCommand}"
+                                                        Style="{StaticResource DangerButtonStyle}"
+                                                        Padding="8,4"
+                                                        ToolTip="Deletes this custom user preset from disk"
+                                                        Content="🗑 Delete" />
+                                            </StackPanel>
+                                        </DockPanel>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Preset Status / Feedback Banner -->
+                                <Border Background="#050811" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="6" Padding="10" Margin="0,0,0,10">
+                                    <DockPanel>
+                                        <TextBlock Text="STATUS:" Foreground="#64748B" FontSize="11" FontWeight="Bold" Margin="0,0,8,0" VerticalAlignment="Center" />
+                                        <TextBlock Text="{Binding PresetStatusText}" Foreground="#38BDF8" FontSize="11" FontWeight="Medium" TextWrapping="Wrap" VerticalAlignment="Center" />
+                                    </DockPanel>
+                                </Border>
+
+                                <!-- Preset Target Settings Inspector -->
+                                <TextBlock Text="PRESET TARGET SETTINGS" Style="{StaticResource SectionTitleStyle}" Margin="0,2,0,6" />
+                                <Border Background="#0A0E17" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="6" Padding="10" Margin="0,0,0,12">
+                                    <ItemsControl ItemsSource="{Binding SelectedPreset.HardwareControls}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Grid Margin="0,2,0,2">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Grid.Column="0" Text="{Binding PropertyName}" Foreground="#F1F5F9" FontSize="11" VerticalAlignment="Center" />
+                                                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                                        <Border Background="#1E293B" CornerRadius="3" Padding="6,1" Margin="0,0,4,0">
+                                                            <TextBlock Text="{Binding Value, StringFormat='Target: {0}'}" Foreground="#94A3B8" FontSize="10" FontWeight="SemiBold" />
+                                                        </Border>
+                                                        <Border Background="#0284C7" CornerRadius="3" Padding="5,1">
+                                                            <TextBlock Text="{Binding IsAuto, StringFormat='Auto: {0}'}" Foreground="#FFFFFF" FontSize="9" FontWeight="Bold" />
+                                                        </Border>
+                                                    </StackPanel>
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </Border>
+
+                                <!-- Create New Preset from Current Live Settings -->
+                                <TextBlock Text="SAVE LIVE SETTINGS AS NEW PRESET" Style="{StaticResource SectionTitleStyle}" Margin="0,2,0,6" />
+                                <Border Background="#0A0E17" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,0,0,12">
+                                    <StackPanel>
+                                        <TextBlock Text="Preset Name:" Style="{StaticResource LabelStyle}" Margin="0,0,0,4" />
+                                        <TextBox Text="{Binding NewPresetName, UpdateSourceTrigger=PropertyChanged}"
+                                                 Background="#050811" Foreground="#F1F5F9" BorderBrush="#1E293B"
+                                                 Padding="8,6" FontSize="12" Margin="0,0,0,8" />
+
+                                        <TextBlock Text="Optional Description:" Style="{StaticResource LabelStyle}" Margin="0,0,0,4" />
+                                        <TextBox Text="{Binding NewPresetDescription, UpdateSourceTrigger=PropertyChanged}"
+                                                 Background="#050811" Foreground="#F1F5F9" BorderBrush="#1E293B"
+                                                 Padding="8,6" FontSize="12" Margin="0,0,0,10" />
+
+                                        <Button Command="{Binding SaveCurrentAsPresetCommand}"
+                                                Style="{StaticResource PrimaryButtonStyle}"
+                                                Background="#059669"
+                                                ToolTip="Captures current active camera values and saves to persistent JSON preset"
+                                                Content="+ Save Live Settings as Preset" />
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Phase 7 Architecture Preview -->
+                                <TextBlock Text="PHASE 7 SOFTWARE LOOK PIPELINE (FUTURE EXTENSION)" Style="{StaticResource SectionTitleStyle}" Margin="0,2,0,6" />
+                                <Border Background="#050811" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="6" Padding="10" Margin="0,0,0,10">
+                                    <StackPanel>
+                                        <Grid Margin="0,0,0,4">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="Tone Curve Pipeline" Foreground="#64748B" FontSize="11" />
+                                            <TextBlock Grid.Column="1" Text="{Binding SelectedPreset.SoftwareLook.ToneCurveName}" Foreground="#A855F7" FontSize="10" FontWeight="SemiBold" />
+                                        </Grid>
+                                        <Grid Margin="0,0,0,4">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="3D Color LUT (.cube)" Foreground="#64748B" FontSize="11" />
+                                            <TextBlock Grid.Column="1" Text="None (Passthrough)" Foreground="#94A3B8" FontSize="10" />
+                                        </Grid>
+                                        <Grid Margin="0,0,0,6">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="Software Denoising" Foreground="#64748B" FontSize="11" />
+                                            <TextBlock Grid.Column="1" Text="Inactive (Phase 7)" Foreground="#94A3B8" FontSize="10" />
+                                        </Grid>
+                                        <TextBlock Text="• Forward Compatibility: Software color grading, tone curves, and 3D LUTs will operate exclusively on the presentation layer. Camera snapshots and MP4 recordings remain 100% untouched raw camera payloads."
+                                                   FontSize="10" Foreground="#475569" TextWrapping="Wrap" />
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </TabItem>
+
+                    <!-- TAB 4: SOFTWARE LOOK PIPELINE -->
+                    <TabItem Header="Software Look" Style="{StaticResource DarkTabItemStyle}">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,10,0,0">
+                            <StackPanel>
+                                <!-- Architecture / Bypass Card -->
+                                <Border Background="#0A0E17" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,0,0,10">
+                                    <StackPanel>
+                                        <Grid Margin="0,0,0,6">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="NON-DESTRUCTIVE LOOK ENGINE" Style="{StaticResource SectionTitleStyle}" Margin="0" />
+                                            <Button Grid.Column="1" Command="{Binding ResetSoftwareLookCommand}"
+                                                    Style="{StaticResource SecondaryButtonStyle}" Padding="8,4" FontSize="11">
+                                                <TextBlock Text="↺ Reset Neutral" />
+                                            </Button>
+                                        </Grid>
+
+                                        <TextBlock Text="Executes tone curves, .cube LUTs, and spatial filters on a dedicated presentation buffer. Original camera snapshots and H.264 recordings remain 100% unaltered."
+                                                   FontSize="11" Foreground="#94A3B8" TextWrapping="Wrap" Margin="0,0,0,8" />
+
+                                        <!-- Preview Bypass Toggle -->
+                                        <Border Background="#131B2E" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="4" Padding="10,8">
+                                            <DockPanel LastChildFill="True">
+                                                <CheckBox DockPanel.Dock="Right" IsChecked="{Binding IsGradedPreviewActive}" VerticalAlignment="Center" />
+                                                <StackPanel>
+                                                    <TextBlock Text="Live Graded Preview" FontWeight="SemiBold" FontSize="12" Foreground="#F8FAFC" />
+                                                    <TextBlock Text="Uncheck to bypass all grading and view raw camera stream" FontSize="10" Foreground="#64748B" />
+                                                </StackPanel>
+                                            </DockPanel>
+                                        </Border>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Cinema Look Manager Card (Phase 22) -->
+                                <Border Background="#0A0E17" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,0,0,10">
+                                    <StackPanel>
+                                        <DockPanel Margin="0,0,0,6">
+                                            <TextBlock Text="CINEMA LOOK MANAGER" Style="{StaticResource SectionTitleStyle}" Margin="0" VerticalAlignment="Center" />
+                                            <!-- Active Look Pill -->
+                                            <Border DockPanel.Dock="Right" Background="#0C4A6E" BorderBrush="#0284C7" BorderThickness="1" CornerRadius="10" Padding="8,2" HorizontalAlignment="Right">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="ACTIVE: " FontSize="10" FontWeight="Bold" Foreground="#38BDF8" />
+                                                    <TextBlock Text="{Binding ActiveLook.Name, FallbackValue='NEUTRAL BYPASS'}" FontSize="10" FontWeight="SemiBold" Foreground="#F0F9FF" />
+                                                </StackPanel>
+                                            </Border>
+                                        </DockPanel>
+
+                                        <TextBlock Text="Manage, recall, duplicate, and persist software grading looks. Hotkeys Ctrl+0..Ctrl+9 map to named profiles."
+                                                   FontSize="11" Foreground="#64748B" Margin="0,0,0,8" />
+
+                                        <!-- Look Selector & Action Buttons -->
+                                        <Grid Margin="0,0,0,8">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <ComboBox Grid.Column="0"
+                                                      ItemsSource="{Binding Looks}"
+                                                      SelectedItem="{Binding SelectedLook}"
+                                                      DisplayMemberPath="Name"
+                                                      Style="{StaticResource DarkComboBoxStyle}"
+                                                      Height="32" Margin="0,0,6,0" />
+                                            <Button Grid.Column="1" Command="{Binding ApplySelectedLookCommand}"
+                                                    Style="{StaticResource PrimaryButtonStyle}" Padding="10,6" Margin="0,0,4,0"
+                                                    ToolTip="Applies the selected look to presentation and recording pipelines">
+                                                <TextBlock Text="Apply" FontWeight="Bold" />
+                                            </Button>
+                                            <Button Grid.Column="2" Command="{Binding ResetToNeutralLookCommand}"
+                                                    Style="{StaticResource SecondaryButtonStyle}" Padding="8,6"
+                                                    ToolTip="Resets all grading to Neutral linear passthrough (Ctrl+0)">
+                                                <TextBlock Text="↺ Neutral (Ctrl+0)" />
+                                            </Button>
+                                        </Grid>
+
+                                        <!-- Look Description & Shortcut Display -->
+                                        <Border Background="#131B2E" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="4" Padding="8,6" Margin="0,0,0,8">
+                                            <StackPanel>
+                                                <DockPanel Margin="0,0,0,2">
+                                                    <TextBlock Text="Selected:" FontSize="10" Foreground="#64748B" />
+                                                    <TextBlock Text="{Binding SelectedLook.Name}" FontSize="11" FontWeight="Bold" Foreground="#E2E8F0" Margin="4,0,0,0" />
+                                                    <TextBlock Text="{Binding SelectedLook.ShortcutKey, StringFormat=' [{0}]'}" FontSize="11" FontWeight="Bold" Foreground="#FBBF24" />
+                                                    <TextBlock Text=" (Factory Preset)" Visibility="{Binding SelectedLook.IsBuiltIn, Converter={StaticResource BoolToVis}}" FontSize="10" Foreground="#94A3B8" HorizontalAlignment="Right" />
+                                                </DockPanel>
+                                                <TextBlock Text="{Binding SelectedLook.Description}" FontSize="10" FontStyle="Italic" Foreground="#94A3B8" TextWrapping="Wrap" />
+                                            </StackPanel>
+                                        </Border>
+
+                                        <!-- Status & Alert Banner -->
+                                        <TextBlock Text="{Binding LookStatusText}" FontSize="11" Foreground="#38BDF8" Margin="0,0,0,8" TextWrapping="Wrap" />
+
+                                        <!-- LUT Missing Warning Alert -->
+                                        <Border Background="#451A03" BorderBrush="#D97706" BorderThickness="1" CornerRadius="4" Padding="8,6" Margin="0,0,0,8"
+                                                Visibility="{Binding HasLutWarning, Converter={StaticResource BoolToVis}}">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="⚠️ " FontSize="12" VerticalAlignment="Center" />
+                                                <TextBlock Text="{Binding LutValidationWarning}" Foreground="#FDE68A" FontSize="10" TextWrapping="Wrap" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                            </StackPanel>
+                                        </Border>
+
+                                        <!-- Look Management Toolbar (Duplicate, Rename, Delete, Save New) -->
+                                        <Border Background="#0F172A" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="4" Padding="8" Margin="0,0,0,4">
+                                            <StackPanel>
+                                                <TextBlock Text="LOOK EDITING &amp; PRESETS" FontSize="10" FontWeight="Bold" Foreground="#64748B" Margin="0,0,0,6" />
+
+                                                <Grid Margin="0,0,0,6">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="80" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBox Grid.Column="0" Text="{Binding NewLookName, UpdateSourceTrigger=PropertyChanged}"
+                                                             Style="{StaticResource DarkTextBoxStyle}" Margin="0,0,6,0"
+                                                             ToolTip="Enter look name to save or rename" />
+                                                    <TextBox Grid.Column="1" Text="{Binding SelectedLookShortcut, UpdateSourceTrigger=PropertyChanged}"
+                                                             Style="{StaticResource DarkTextBoxStyle}"
+                                                             ToolTip="Shortcut key (e.g. Ctrl+1 to Ctrl+9, or blank)" />
+                                                </Grid>
+
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="*" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <Button Grid.Column="0" Command="{Binding SaveCurrentAsLookCommand}"
+                                                            Style="{StaticResource SecondaryButtonStyle}" Margin="0,0,4,0" Padding="4,4"
+                                                            ToolTip="Saves current parameter sliders and LUT into a new look">
+                                                        <TextBlock Text="💾 Save New" FontSize="10" />
+                                                    </Button>
+                                                    <Button Grid.Column="1" Command="{Binding DuplicateLookCommand}"
+                                                            Style="{StaticResource SecondaryButtonStyle}" Margin="0,0,4,0" Padding="4,4"
+                                                            ToolTip="Duplicates selected look into a custom user profile">
+                                                        <TextBlock Text="📋 Duplicate" FontSize="10" />
+                                                    </Button>
+                                                    <Button Grid.Column="2" Command="{Binding RenameLookCommand}"
+                                                            Style="{StaticResource SecondaryButtonStyle}" Margin="0,0,4,0" Padding="4,4"
+                                                            ToolTip="Renames the selected custom user look">
+                                                        <TextBlock Text="✏️ Rename" FontSize="10" />
+                                                    </Button>
+                                                    <Button Grid.Column="3" Command="{Binding DeleteLookCommand}"
+                                                            Style="{StaticResource DangerButtonStyle}" Padding="4,4"
+                                                            ToolTip="Deletes the selected custom user look (built-in presets cannot be deleted)">
+                                                        <TextBlock Text="🗑️ Delete" FontSize="10" />
+                                                    </Button>
+                                                </Grid>
+                                            </StackPanel>
+                                        </Border>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Parametric Tonal & Color Adjustments Card -->
+                                <Border Background="#0A0E17" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,0,0,10">
+                                    <StackPanel>
+                                        <TextBlock Text="PARAMETRIC TONE &amp; COLOR" Style="{StaticResource SectionTitleStyle}" Margin="0,0,0,4" />
+                                        <TextBlock Text="1D Monotonic Transfer Curves (Zero Sensor Saturation Claim)"
+                                                   FontSize="10" Foreground="#64748B" Margin="0,0,0,10" />
+
+                                        <!-- Software Exposure Offset (Digital Gain) -->
+                                        <Grid Margin="0,0,0,2">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0">
+                                                <TextBlock Text="Software Digital Exposure" Foreground="#F1F5F9" FontSize="12" FontWeight="SemiBold" />
+                                                <TextBlock Text="Digital multiplication on decoded RGB (not sensor shutter)" Foreground="#64748B" FontSize="10" />
+                                            </StackPanel>
+                                            <TextBlock Grid.Column="1" Text="{Binding SoftwareExposureOffset, StringFormat='{}{0:+0.00;-0.00;0.00} EV'}"
+                                                       Foreground="#38BDF8" FontWeight="Bold" FontSize="12" VerticalAlignment="Center" />
+                                        </Grid>
+                                        <Slider Minimum="-2.0" Maximum="2.0" Value="{Binding SoftwareExposureOffset}"
+                                                TickFrequency="0.25" IsSnapToTickEnabled="False" Margin="0,2,0,10" />
+
+                                        <!-- Contrast -->
+                                        <Grid Margin="0,0,0,2">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0">
+                                                <TextBlock Text="Contrast Slope" Foreground="#F1F5F9" FontSize="12" FontWeight="SemiBold" />
+                                                <TextBlock Text="Midtone pivot contrast scaling" Foreground="#64748B" FontSize="10" />
+                                            </StackPanel>
+                                            <TextBlock Grid.Column="1" Text="{Binding SoftwareContrast, StringFormat='{}{0:F2}x'}"
+                                                       Foreground="#38BDF8" FontWeight="Bold" FontSize="12" VerticalAlignment="Center" />
+                                        </Grid>
+                                        <Slider Minimum="0.5" Maximum="2.0" Value="{Binding SoftwareContrast}"
+                                                TickFrequency="0.1" IsSnapToTickEnabled="False" Margin="0,2,0,10" />
+
+                                        <!-- Saturation -->
+                                        <Grid Margin="0,0,0,2">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0">
+                                                <TextBlock Text="Saturation (Chroma)" Foreground="#F1F5F9" FontSize="12" FontWeight="SemiBold" />
+                                                <TextBlock Text="BT.709 luma-preserving color intensity (0.0 = B&amp;W)" Foreground="#64748B" FontSize="10" />
+                                            </StackPanel>
+                                            <TextBlock Grid.Column="1" Text="{Binding SaturationDisplayLabel}"
+                                                       Foreground="#38BDF8" FontWeight="Bold" FontSize="12" VerticalAlignment="Center" />
+                                        </Grid>
+                                        <Slider Minimum="0.0" Maximum="2.0" Value="{Binding SoftwareSaturation}"
+                                                TickFrequency="0.1" IsSnapToTickEnabled="False" Margin="0,2,0,10" />
+
+                                        <!-- S-Curve Inflection -->
+                                        <Grid Margin="0,0,0,2">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0">
+                                                <TextBlock Text="S-Curve Film Inflection" Foreground="#F1F5F9" FontSize="12" FontWeight="SemiBold" />
+                                                <TextBlock Text="Cubic hermite shoulder and toe rolloff" Foreground="#64748B" FontSize="10" />
+                                            </StackPanel>
+                                            <TextBlock Grid.Column="1" Text="{Binding SoftwareSCurveStrength, StringFormat='{}{0:F2}'}"
+                                                       Foreground="#38BDF8" FontWeight="Bold" FontSize="12" VerticalAlignment="Center" />
+                                        </Grid>
+                                        <Slider Minimum="0.0" Maximum="1.0" Value="{Binding SoftwareSCurveStrength}"
+                                                TickFrequency="0.05" IsSnapToTickEnabled="False" Margin="0,2,0,10" />
+
+                                        <!-- Highlights -->
+                                        <Grid Margin="0,0,0,2">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0">
+                                                <TextBlock Text="Highlights Adjustment" Foreground="#F1F5F9" FontSize="12" FontWeight="SemiBold" />
+                                                <TextBlock Text="Tonal roll-off above midtone (no DR recovery)" Foreground="#64748B" FontSize="10" />
+                                            </StackPanel>
+                                            <TextBlock Grid.Column="1" Text="{Binding SoftwareHighlights, StringFormat='{}{0:+0;-0;0}%'}"
+                                                       Foreground="#38BDF8" FontWeight="Bold" FontSize="12" VerticalAlignment="Center" />
+                                        </Grid>
+                                        <Slider Minimum="-50" Maximum="50" Value="{Binding SoftwareHighlights}"
+                                                TickFrequency="5" IsSnapToTickEnabled="False" Margin="0,2,0,10" />
+
+                                        <!-- Shadows -->
+                                        <Grid Margin="0,0,0,2">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0">
+                                                <TextBlock Text="Shadows Adjustment" Foreground="#F1F5F9" FontSize="12" FontWeight="SemiBold" />
+                                                <TextBlock Text="Shadow zone compression / lift" Foreground="#64748B" FontSize="10" />
+                                            </StackPanel>
+                                            <TextBlock Grid.Column="1" Text="{Binding SoftwareShadows, StringFormat='{}{0:+0;-0;0}%'}"
+                                                       Foreground="#38BDF8" FontWeight="Bold" FontSize="12" VerticalAlignment="Center" />
+                                        </Grid>
+                                        <Slider Minimum="-50" Maximum="50" Value="{Binding SoftwareShadows}"
+                                                TickFrequency="5" IsSnapToTickEnabled="False" Margin="0,2,0,0" />
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Standard .cube 3D / 1D LUT Card -->
+                                <Border Background="#0A0E17" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,0,0,10">
+                                    <StackPanel>
+                                        <Grid Margin="0,0,0,4">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="3D / 1D .CUBE LUT ENGINE" Style="{StaticResource SectionTitleStyle}" Margin="0" />
+                                            <CheckBox Grid.Column="1" Content="Enable" IsChecked="{Binding IsLutEnabled}"
+                                                      Foreground="#94A3B8" FontSize="11" VerticalAlignment="Center" />
+                                        </Grid>
+
+                                        <TextBlock Text="Adobe / DaVinci Resolve format with trilinear interpolation."
+                                                   FontSize="11" Foreground="#64748B" Margin="0,0,0,8" />
+
+                                        <!-- Active LUT Status Banner -->
+                                        <Border Background="#131B2E" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="4" Padding="10,6" Margin="0,0,0,8">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                                    <TextBlock Text="Active LUT:" FontSize="10" Foreground="#64748B" />
+                                                    <TextBlock Text="{Binding ActiveLutTitle}" FontSize="12" FontWeight="Bold" Foreground="#38BDF8" />
+                                                </StackPanel>
+                                                <Button Grid.Column="1" Command="{Binding ClearLutCommand}"
+                                                        Style="{StaticResource SecondaryButtonStyle}" Padding="6,3" FontSize="10"
+                                                        Visibility="{Binding IsLutLoaded, Converter={StaticResource BoolToVis}}">
+                                                    <TextBlock Text="✕ Clear" />
+                                                </Button>
+                                            </Grid>
+                                        </Border>
+
+                                        <!-- Load LUT Button -->
+                                        <Button Command="{Binding OpenLutFileCommand}"
+                                                Style="{StaticResource SecondaryButtonStyle}"
+                                                HorizontalAlignment="Stretch">
+                                            <TextBlock Text="📂 Ingest .cube LUT File..." />
+                                        </Button>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Spatial Filtering (Sharpening & Denoising) Card -->
+                                <Border Background="#0A0E17" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,0,0,10">
+                                    <StackPanel>
+                                        <TextBlock Text="SPATIAL ENHANCEMENT" Style="{StaticResource SectionTitleStyle}" Margin="0,0,0,4" />
+                                        <TextBlock Text="Optional real-time unsharp masking and noise reduction (neutral default: 0.0)"
+                                                   FontSize="10" Foreground="#64748B" Margin="0,0,10,0" />
+
+                                        <!-- Sharpening (Unsharp Masking) -->
+                                        <Grid Margin="0,0,0,2">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0">
+                                                <TextBlock Text="Unsharp Masking (Sharpen)" Foreground="#F1F5F9" FontSize="12" FontWeight="SemiBold" />
+                                                <TextBlock Text="Edge-enhancement with ±18 code value halo limiter" Foreground="#64748B" FontSize="10" />
+                                            </StackPanel>
+                                            <TextBlock Grid.Column="1" Text="{Binding SoftwareSharpenStrength, StringFormat='{}{0:F2}'}"
+                                                       Foreground="#38BDF8" FontWeight="Bold" FontSize="12" VerticalAlignment="Center" />
+                                        </Grid>
+                                        <Slider Minimum="0.0" Maximum="1.0" Value="{Binding SoftwareSharpenStrength}"
+                                                TickFrequency="0.05" IsSnapToTickEnabled="False" Margin="0,2,0,10" />
+
+                                        <!-- Denoising -->
+                                        <Grid Margin="0,0,0,2">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0">
+                                                <TextBlock Text="Edge-Preserving Denoising" Foreground="#F1F5F9" FontSize="12" FontWeight="SemiBold" />
+                                                <TextBlock Text="Fast photometric spatial noise suppression" Foreground="#64748B" FontSize="10" />
+                                            </StackPanel>
+                                            <TextBlock Grid.Column="1" Text="{Binding SoftwareDenoiseStrength, StringFormat='{}{0:F2}'}"
+                                                       Foreground="#38BDF8" FontWeight="Bold" FontSize="12" VerticalAlignment="Center" />
+                                        </Grid>
+                                        <Slider Minimum="0.0" Maximum="1.0" Value="{Binding SoftwareDenoiseStrength}"
+                                                TickFrequency="0.05" IsSnapToTickEnabled="False" Margin="0,2,0,0" />
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Snapshot Export Card -->
+                                <Border Background="#0A0E17" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,0,0,10">
+                                    <StackPanel>
+                                        <TextBlock Text="EXPORT GRADED MEDIA" Style="{StaticResource SectionTitleStyle}" Margin="0,0,0,4" />
+                                        <TextBlock Text="Exports the current graded presentation frame as lossless PNG along with full look settings and hardware control telemetry in a companion JSON sidecar."
+                                                   FontSize="11" Foreground="#94A3B8" TextWrapping="Wrap" Margin="0,0,0,10" />
+
+                                        <Button Command="{Binding ExportProcessedSnapshotCommand}"
+                                                Style="{StaticResource PrimaryButtonStyle}"
+                                                HorizontalAlignment="Stretch" Padding="12,10">
+                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                                <TextBlock Text="🎨 Export Graded Snapshot (Lossless PNG + JSON)" FontWeight="Bold" />
+                                            </StackPanel>
+                                        </Button>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </TabItem>
+
+                    <!-- TAB 5: SCOPES & TELEMETRY -->
+                    <TabItem Header="Scopes" Style="{StaticResource DarkTabItemStyle}">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,10,0,0">
+                            <StackPanel>
+                                <!-- Live Histogram Card -->
+                                <TextBlock Text="256-BIN REAL-TIME HISTOGRAM" Style="{StaticResource SectionTitleStyle}" />
+                                <Border Background="#050811" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="6" Padding="8" Margin="0,0,0,10">
+                                    <StackPanel>
+                                        <Image Source="{Binding HistogramBitmap}" Width="256" Height="100" HorizontalAlignment="Center" Stretch="Uniform" />
+                                        
+                                        <!-- Controls row -->
+                                        <Grid Margin="0,8,0,0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <CheckBox Grid.Column="0" Content="RGB Channels" IsChecked="{Binding ShowRgbHistogram, Mode=TwoWay}"
+                                                      Foreground="#94A3B8" FontSize="11" VerticalAlignment="Center" />
+                                            <CheckBox Grid.Column="1" Content="{Binding RangeStandardText}" IsChecked="{Binding IsFullRange, Mode=TwoWay}"
+                                                      Foreground="#94A3B8" FontSize="11" VerticalAlignment="Center" HorizontalAlignment="Right" />
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Decoded-Pixel Clipping & Dynamic Range Analysis Card -->
+                                <TextBlock Text="DECODED-PIXEL CLIPPING &amp; CODE-VALUE DISTRIBUTION" Style="{StaticResource SectionTitleStyle}" Margin="0,4,0,2" />
+                                <TextBlock Text="• Evaluates code-value limits in delivered RGB display buffer. Does not establish physical sensor ADC saturation."
+                                           FontSize="10" Foreground="#64748B" Margin="0,0,0,6" TextWrapping="Wrap" />
+                                <Grid Margin="0,0,0,12">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <!-- Highlight Clipping -->
+                                    <Border Grid.Row="0" Grid.Column="0" Background="#0A0E17" CornerRadius="6" Padding="8" Margin="0,0,4,4">
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding HighlightThresholdHeader}" Style="{StaticResource LabelStyle}" />
+                                            <TextBlock Text="{Binding HighlightClipText}" FontSize="15" FontWeight="Bold" Foreground="#EF4444" />
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Shadow Crush -->
+                                    <Border Grid.Row="0" Grid.Column="1" Background="#0A0E17" CornerRadius="6" Padding="8" Margin="2,0,2,4">
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding ShadowCrushThresholdHeader}" Style="{StaticResource LabelStyle}" />
+                                            <TextBlock Text="{Binding ShadowCrushText}" FontSize="15" FontWeight="Bold" Foreground="#3B82F6" />
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Mean Luminance -->
+                                    <Border Grid.Row="0" Grid.Column="2" Background="#0A0E17" CornerRadius="6" Padding="8" Margin="4,0,0,4">
+                                        <StackPanel>
+                                            <TextBlock Text="MEAN LUMA" Style="{StaticResource LabelStyle}" />
+                                            <TextBlock Text="{Binding MeanLumaText}" FontSize="15" FontWeight="Bold" Foreground="#38BDF8" />
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Observed Code-Value Range -->
+                                    <Border Grid.Row="1" Grid.Column="0" Background="#0A0E17" CornerRadius="6" Padding="8" Margin="0,2,4,0">
+                                        <StackPanel>
+                                            <TextBlock Text="OBSERVED RANGE" Style="{StaticResource LabelStyle}" />
+                                            <TextBlock Text="{Binding ObservedRangeText}" FontSize="14" FontWeight="Bold" Foreground="#A855F7" />
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Broadcast Super-White (> 235) -->
+                                    <Border Grid.Row="1" Grid.Column="1" Background="#0A0E17" CornerRadius="6" Padding="8" Margin="2,2,2,0">
+                                        <StackPanel>
+                                            <TextBlock Text="SUPER-WHITE (> 235)" Style="{StaticResource LabelStyle}" />
+                                            <TextBlock Text="{Binding BroadcastSuperWhiteText}" FontSize="15" FontWeight="Bold" Foreground="#F59E0B" />
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Broadcast Sub-Black (< 16) -->
+                                    <Border Grid.Row="1" Grid.Column="2" Background="#0A0E17" CornerRadius="6" Padding="8" Margin="4,2,0,0">
+                                        <StackPanel>
+                                            <TextBlock Text="SUB-BLACK (&lt; 16)" Style="{StaticResource LabelStyle}" />
+                                            <TextBlock Text="{Binding BroadcastSubBlackText}" FontSize="15" FontWeight="Bold" Foreground="#818CF8" />
+                                        </StackPanel>
+                                    </Border>
+                                </Grid>
+
+                                <!-- Zebra Exposure Assist Overlay -->
+                                <TextBlock Text="ZEBRA EXPOSURE ASSIST (PREVIEW ONLY)" Style="{StaticResource SectionTitleStyle}" Margin="0,4,0,6" />
+                                <Border Background="#0A0E17" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,0,0,14">
+                                    <StackPanel>
+                                        <DockPanel Margin="0,0,0,8">
+                                            <TextBlock DockPanel.Dock="Right" Text="{Binding ZebraThreshold}" Foreground="#38BDF8" FontWeight="Bold" FontSize="12" VerticalAlignment="Center" />
+                                            <CheckBox Content="Enable Zebra Stripes on Preview"
+                                                      IsChecked="{Binding EnableZebra, Mode=TwoWay}"
+                                                      Foreground="#F1F5F9" FontWeight="SemiBold" FontSize="12" VerticalAlignment="Center" />
+                                        </DockPanel>
+                                        
+                                        <TextBlock Text="Zebra Threshold (Luma 0-255):" Style="{StaticResource LabelStyle}" Margin="0,0,0,2" />
+                                        <Slider Minimum="150" Maximum="255" SmallChange="1" LargeChange="5"
+                                                Value="{Binding ZebraThreshold, Mode=TwoWay}"
+                                                IsEnabled="{Binding EnableZebra}"
+                                                Foreground="#38BDF8" Margin="0,0,0,6" />
+
+                                        <TextBlock Text="• Non-destructive: Zebras render exclusively onto the live viewport. Saved still captures and recorded MP4 videos remain untouched."
+                                                   FontSize="10" Foreground="#64748B" TextWrapping="Wrap" />
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- False-Color Exposure Scopes (Phase 8) -->
+                                <TextBlock Text="FALSE-COLOR EXPOSURE SCOPES (PREVIEW ONLY)" Style="{StaticResource SectionTitleStyle}" Margin="0,4,0,6" />
+                                <Border Background="#0A0E17" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,0,0,14">
+                                    <StackPanel>
+                                        <!-- Master Toggle -->
+                                        <DockPanel Margin="0,0,0,10">
+                                            <CheckBox Content="Enable False-Color Exposure Scopes"
+                                                      IsChecked="{Binding EnableFalseColor, Mode=TwoWay}"
+                                                      Foreground="#F1F5F9" FontWeight="Bold" FontSize="12" VerticalAlignment="Center" />
+                                        </DockPanel>
+
+                                        <!-- Profile Selection Row -->
+                                        <TextBlock Text="Exposure Reference Profile:" Style="{StaticResource LabelStyle}" Margin="0,0,0,4" />
+                                        <Grid Margin="0,0,0,10">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <RadioButton Grid.Column="0" Content="10-Zone Custom (0–100 IRE)"
+                                                         IsChecked="{Binding IsCustomProfileSelected, Mode=TwoWay}"
+                                                         Foreground="#E2E8F0" FontSize="11" Margin="0,0,4,0" VerticalAlignment="Center" />
+                                            <RadioButton Grid.Column="1" Content="ARRI-Style Reference"
+                                                         IsChecked="{Binding IsArriProfileSelected, Mode=TwoWay}"
+                                                         Foreground="#E2E8F0" FontSize="11" Margin="4,0,0,0" VerticalAlignment="Center" />
+                                        </Grid>
+
+                                        <!-- Analysis Source Selector (Section 4) -->
+                                        <TextBlock Text="Exposure Analysis Source (Input Frame):" Style="{StaticResource LabelStyle}" Margin="0,0,0,4" />
+                                        <Grid Margin="0,0,0,6">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <RadioButton Grid.Column="0" Content="Original Camera (Default)"
+                                                         IsChecked="{Binding IsAnalysisSourceOriginal, Mode=TwoWay}"
+                                                         Foreground="#10B981" FontWeight="SemiBold" FontSize="11" Margin="0,0,4,0" VerticalAlignment="Center" />
+                                            <RadioButton Grid.Column="1" Content="Graded Preview"
+                                                         IsChecked="{Binding IsAnalysisSourceGraded, Mode=TwoWay}"
+                                                         Foreground="#F59E0B" FontWeight="SemiBold" FontSize="11" Margin="4,0,0,0" VerticalAlignment="Center" />
+                                        </Grid>
+
+                                        <!-- Analysis Warning Banner when Graded Preview is selected -->
+                                        <Border Background="#241B08" BorderBrush="#F59E0B" BorderThickness="1" CornerRadius="4" Padding="8,6" Margin="0,0,0,10"
+                                                Visibility="{Binding AnalysisSourceWarningVisibility}">
+                                            <TextBlock Text="{Binding AnalysisSourceWarningText}" FontSize="10" Foreground="#FDE68A" TextWrapping="Wrap" />
+                                        </Border>
+
+                                        <!-- Overlay Opacity Slider -->
+                                        <DockPanel Margin="0,0,0,8">
+                                            <TextBlock DockPanel.Dock="Right" Text="{Binding FalseColorOpacityText}" Foreground="#38BDF8" FontWeight="Bold" FontSize="11" VerticalAlignment="Center" />
+                                            <TextBlock Text="Overlay Opacity:" Style="{StaticResource LabelStyle}" VerticalAlignment="Center" />
+                                        </DockPanel>
+                                        <Slider Minimum="10" Maximum="100" SmallChange="5" LargeChange="10"
+                                                Value="{Binding FalseColorOpacity, Mode=TwoWay}"
+                                                Foreground="#38BDF8" Margin="0,0,0,10" />
+
+                                        <!-- ARRI Mode Intermediate Setting (visible when ARRI is selected) -->
+                                        <StackPanel Visibility="{Binding IsArriProfileSelected, Converter={StaticResource BoolToVis}}" Margin="0,0,0,10">
+                                            <TextBlock Text="ARRI Intermediate Bands Mode:" Style="{StaticResource LabelStyle}" Margin="0,0,0,4" />
+                                            <StackPanel Orientation="Horizontal">
+                                                <RadioButton Content="Desaturated Grayscale (Monitor Std)" IsChecked="{Binding IsArriGrayscaleIntermediate, Mode=TwoWay}"
+                                                             Foreground="#94A3B8" FontSize="11" Margin="0,0,12,0" />
+                                                <RadioButton Content="Pass-Through Color" IsChecked="{Binding IsArriPassThroughIntermediate, Mode=TwoWay}"
+                                                             Foreground="#94A3B8" FontSize="11" />
+                                            </StackPanel>
+                                        </StackPanel>
+
+                                        <!-- Reference Targets (Skin Tone & Middle Gray) -->
+                                        <TextBlock Text="IRE-EQUIVALENT REFERENCE TARGETS (DECODED LUMA)" Style="{StaticResource LabelStyle}" FontWeight="Bold" Foreground="#94A3B8" Margin="0,4,0,6" />
+                                        
+                                        <!-- Skin-Tone Target -->
+                                        <DockPanel Margin="0,0,0,2">
+                                            <TextBlock DockPanel.Dock="Right" Text="{Binding SkinToneTargetRangeText}" Foreground="#FB7185" FontWeight="SemiBold" FontSize="10" VerticalAlignment="Center" />
+                                            <TextBlock Text="Skin-Tone Reference Target:" Style="{StaticResource LabelStyle}" />
+                                        </DockPanel>
+                                        <Grid Margin="0,0,0,8">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="80" />
+                                            </Grid.ColumnDefinitions>
+                                            <Slider Grid.Column="0" Minimum="40" Maximum="75" SmallChange="1" LargeChange="5"
+                                                    Value="{Binding SkinToneTarget, Mode=TwoWay}" Foreground="#FB7185" Margin="0,0,8,0" />
+                                            <TextBlock Grid.Column="1" Text="Tol ±:" Style="{StaticResource LabelStyle}" VerticalAlignment="Center" Margin="0,0,4,0" />
+                                            <Slider Grid.Column="2" Minimum="1" Maximum="6" SmallChange="0.5" LargeChange="1"
+                                                    Value="{Binding SkinToneTolerance, Mode=TwoWay}" Foreground="#FB7185" />
+                                        </Grid>
+
+                                        <!-- Middle-Gray Target -->
+                                        <DockPanel Margin="0,0,0,2">
+                                            <TextBlock DockPanel.Dock="Right" Text="{Binding MiddleGrayTargetRangeText}" Foreground="#16A34A" FontWeight="SemiBold" FontSize="10" VerticalAlignment="Center" />
+                                            <TextBlock Text="18% Middle-Gray Target:" Style="{StaticResource LabelStyle}" />
+                                        </DockPanel>
+                                        <Grid Margin="0,0,0,10">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="80" />
+                                            </Grid.ColumnDefinitions>
+                                            <Slider Grid.Column="0" Minimum="30" Maximum="50" SmallChange="1" LargeChange="5"
+                                                    Value="{Binding MiddleGrayTarget, Mode=TwoWay}" Foreground="#16A34A" Margin="0,0,8,0" />
+                                            <TextBlock Grid.Column="1" Text="Tol ±:" Style="{StaticResource LabelStyle}" VerticalAlignment="Center" Margin="0,0,4,0" />
+                                            <Slider Grid.Column="2" Minimum="1" Maximum="5" SmallChange="0.5" LargeChange="1"
+                                                    Value="{Binding MiddleGrayTolerance, Mode=TwoWay}" Foreground="#16A34A" />
+                                        </Grid>
+
+                                        <!-- Scientific Calibration Notice -->
+                                        <TextBlock Text="• Scientific Note: The Dell UZ2315H ISP delivers processed 8-bit video, not sensor RAW. Middle-gray and skin-tone ranges are relative references within decoded 8-bit luma, not universal standards. Desired exposure varies with skin tones and artistic intent."
+                                                   FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,0,0,10" />
+
+                                        <!-- Active Exposure Zone Legend -->
+                                        <TextBlock Text="ACTIVE EXPOSURE ZONE LEGEND" Style="{StaticResource LabelStyle}" FontWeight="Bold" Foreground="#94A3B8" Margin="0,2,0,6" />
+                                        <Border Background="#050811" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="6" Padding="6" Margin="0,0,0,10">
+                                            <ItemsControl ItemsSource="{Binding ActiveLegendZones}">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Grid Margin="0,2,0,2">
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="28" />
+                                                                <ColumnDefinition Width="100" />
+                                                                <ColumnDefinition Width="90" />
+                                                                <ColumnDefinition Width="*" />
+                                                            </Grid.ColumnDefinitions>
+                                                            <Border Grid.Column="0" Background="{Binding Brush}" BorderBrush="#334155" BorderThickness="1" CornerRadius="3" Height="14" Margin="0,0,6,0" VerticalAlignment="Center" />
+                                                            <TextBlock Grid.Column="1" Text="{Binding Name}" Foreground="#F1F5F9" FontWeight="SemiBold" FontSize="11" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                                            <TextBlock Grid.Column="2" Text="{Binding RangeText}" Foreground="#38BDF8" FontWeight="Bold" FontSize="11" VerticalAlignment="Center" />
+                                                            <TextBlock Grid.Column="3" Text="{Binding Description}" Foreground="#64748B" FontSize="10" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                                        </Grid>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </Border>
+
+                                        <!-- Custom Zone Editor (visible when Custom Profile is active) -->
+                                        <StackPanel Visibility="{Binding IsCustomProfileSelected, Converter={StaticResource BoolToVis}}" Margin="0,0,0,8">
+                                            <TextBlock Text="CUSTOM ZONE BOUNDARIES &amp; COLORS" Style="{StaticResource LabelStyle}" FontWeight="Bold" Foreground="#94A3B8" Margin="0,4,0,4" />
+                                            
+                                            <!-- Validation Error Banner -->
+                                            <Border Background="#2B0E14" BorderBrush="#EF4444" BorderThickness="1" CornerRadius="4" Padding="8,6" Margin="0,0,0,8"
+                                                    Visibility="{Binding ZoneValidationErrorVisibility}">
+                                                <TextBlock Text="{Binding ZoneValidationError}" FontSize="10" Foreground="#FCA5A5" TextWrapping="Wrap" />
+                                            </Border>
+
+                                            <!-- Zone rows table -->
+                                            <Border Background="#050811" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="6" Padding="6" Margin="0,0,0,8">
+                                                <ItemsControl ItemsSource="{Binding CustomZones}">
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <Grid Margin="0,2,0,2">
+                                                                <Grid.ColumnDefinitions>
+                                                                    <ColumnDefinition Width="24" />
+                                                                    <ColumnDefinition Width="90" />
+                                                                    <ColumnDefinition Width="45" />
+                                                                    <ColumnDefinition Width="15" />
+                                                                    <ColumnDefinition Width="45" />
+                                                                    <ColumnDefinition Width="65" />
+                                                                    <ColumnDefinition Width="*" />
+                                                                </Grid.ColumnDefinitions>
+                                                                <Border Grid.Column="0" Background="{Binding Brush}" BorderBrush="#334155" BorderThickness="1" CornerRadius="2" Height="14" Margin="0,0,4,0" VerticalAlignment="Center" />
+                                                                <TextBox Grid.Column="1" Text="{Binding Name, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Background="#0F172A" Foreground="#FFFFFF" BorderBrush="#334155" FontSize="10" Padding="2,1" Margin="0,0,4,0" />
+                                                                <TextBox Grid.Column="2" Text="{Binding MinIre, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:F1}}" Background="#0F172A" Foreground="#38BDF8" BorderBrush="#334155" FontSize="10" Padding="2,1" />
+                                                                <TextBlock Grid.Column="3" Text="–" Foreground="#64748B" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                                <TextBox Grid.Column="4" Text="{Binding MaxIre, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:F1}}" Background="#0F172A" Foreground="#38BDF8" BorderBrush="#334155" FontSize="10" Padding="2,1" Margin="0,0,4,0" />
+                                                                <TextBox Grid.Column="5" Text="{Binding HexColor, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Background="#0F172A" Foreground="#E2E8F0" BorderBrush="#334155" FontSize="10" Padding="2,1" Margin="0,0,4,0" />
+                                                                <TextBlock Grid.Column="6" Text="{Binding Description}" Foreground="#475569" FontSize="10" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                                            </Grid>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                            </Border>
+
+                                            <!-- Reset Actions -->
+                                            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                                <Button Content="Restore Default 10 Zones" Command="{Binding RestoreDefaultZonesCommand}" Style="{StaticResource SecondaryButtonStyle}" FontSize="11" Padding="8,4" Margin="0,0,8,0" />
+                                                <Button Content="Reset All Defaults" Command="{Binding ResetFalseColorDefaultsCommand}" Style="{StaticResource SecondaryButtonStyle}" FontSize="11" Padding="8,4" />
+                                            </StackPanel>
+                                        </StackPanel>
+
+                                        <TextBlock Text="• Non-destructive: False color renders exclusively onto the live viewport presentation overlay. Saved still captures and recorded MP4 videos remain untouched."
+                                                   FontSize="10" Foreground="#64748B" TextWrapping="Wrap" />
+                                    </StackPanel>
+                                </Border>
+
+                                <TextBlock Text="STREAM TELEMETRY" Style="{StaticResource SectionTitleStyle}" />
+                                
+                                <Grid Margin="0,0,0,16">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <!-- Stat Box 1: Actual FPS -->
+                                    <Border Grid.Row="0" Grid.Column="0" Background="#0A0E17" CornerRadius="6" Padding="10" Margin="0,0,4,8">
+                                        <StackPanel>
+                                            <TextBlock Text="ACTUAL FPS" Style="{StaticResource LabelStyle}" />
+                                            <TextBlock Text="{Binding CurrentFps}" FontSize="20" FontWeight="Bold" Foreground="#38BDF8" />
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Stat Box 2: Target FPS -->
+                                    <Border Grid.Row="0" Grid.Column="1" Background="#0A0E17" CornerRadius="6" Padding="10" Margin="4,0,0,8">
+                                        <StackPanel>
+                                            <TextBlock Text="TARGET FPS" Style="{StaticResource LabelStyle}" />
+                                            <TextBlock Text="{Binding TargetFps}" FontSize="20" FontWeight="Bold" Foreground="#94A3B8" />
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Stat Box 3: Total Frames -->
+                                    <Border Grid.Row="1" Grid.Column="0" Background="#0A0E17" CornerRadius="6" Padding="10" Margin="0,0,4,8">
+                                        <StackPanel>
+                                            <TextBlock Text="TOTAL FRAMES" Style="{StaticResource LabelStyle}" />
+                                            <TextBlock Text="{Binding TotalFrames}" FontSize="18" FontWeight="SemiBold" Foreground="#F1F5F9" />
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Stat Box 4: Dropped Frames -->
+                                    <Border Grid.Row="1" Grid.Column="1" Background="#0A0E17" CornerRadius="6" Padding="10" Margin="4,0,0,8">
+                                        <StackPanel>
+                                            <TextBlock Text="DROPPED FRAMES" Style="{StaticResource LabelStyle}" />
+                                            <TextBlock Text="{Binding DroppedFrames}" FontSize="18" FontWeight="SemiBold" Foreground="#F87171" />
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Stat Box 5: Active Resolution -->
+                                    <Border Grid.Row="2" Grid.Column="0" Background="#0A0E17" CornerRadius="6" Padding="10" Margin="0,0,4,8">
+                                        <StackPanel>
+                                            <TextBlock Text="STREAM RESOLUTION" Style="{StaticResource LabelStyle}" />
+                                            <TextBlock Text="{Binding ActiveResolution}" FontSize="15" FontWeight="SemiBold" Foreground="#F1F5F9" />
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Stat Box 6: Active Pixel Format -->
+                                    <Border Grid.Row="2" Grid.Column="1" Background="#0A0E17" CornerRadius="6" Padding="10" Margin="4,0,0,8">
+                                        <StackPanel>
+                                            <TextBlock Text="FOURCC FORMAT" Style="{StaticResource LabelStyle}" />
+                                            <TextBlock Text="{Binding ActivePixelFormat}" FontSize="15" FontWeight="Bold" Foreground="#34D399" />
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Stat Box 7: Data Rate -->
+                                    <Border Grid.Row="3" Grid.Column="0" Background="#0A0E17" CornerRadius="6" Padding="10" Margin="0,0,4,0">
+                                        <StackPanel>
+                                            <TextBlock Text="BANDWIDTH (MB/S)" Style="{StaticResource LabelStyle}" />
+                                            <TextBlock Text="{Binding DataRateMBps}" FontSize="16" FontWeight="SemiBold" Foreground="#F1F5F9" />
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Stat Box 8: Backend -->
+                                    <Border Grid.Row="3" Grid.Column="1" Background="#0A0E17" CornerRadius="6" Padding="10" Margin="4,0,0,0">
+                                        <StackPanel>
+                                            <TextBlock Text="CAPTURE STACK" Style="{StaticResource LabelStyle}" />
+                                            <TextBlock Text="IMFSourceReader" FontSize="13" FontWeight="SemiBold" Foreground="#38BDF8" Margin="0,3,0,0" />
+                                        </StackPanel>
+                                    </Border>
+                                </Grid>
+
+                                <!-- Hardware Bandwidth Technical Note -->
+                                <TextBlock Text="USB 2.0 BANDWIDTH ANALYSIS" Style="{StaticResource SectionTitleStyle}" Margin="0,8,0,6" />
+                                <Border Background="#0A0E17" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="6" Padding="12">
+                                    <TextBlock Text="• USB 2.0 High-Speed Isochronous theoretical bandwidth is 480 Mbps (~40 MB/s practical limit).&#x0a;• Uncompressed 1080p YUY2 requires 1920×1080×2 = 4.14 MB per frame.&#x0a;• At 30 FPS, uncompressed 1080p would require ~124 MB/s (3× USB 2.0 capacity).&#x0a;• Therefore, the Dell UZ2315H hardware throttles uncompressed YUY2 to 5 FPS (20.7 MB/s) and provides MJPEG compression to achieve full 30 FPS."
+                                               FontSize="11" Foreground="#94A3B8" LineHeight="17" TextWrapping="Wrap" />
+                                </Border>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </TabItem>
+
+                    <!-- TAB 3: SENSOR RAW & PIPELINE ANALYSIS -->
+                    <TabItem Header="RAW &amp; Pipeline" Style="{StaticResource DarkTabItemStyle}">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,10,0,0">
+                            <StackPanel>
+                                <TextBlock Text="CAPABILITY CLASSIFICATION MATRIX" Style="{StaticResource SectionTitleStyle}" />
+                                <TextBlock Text="Distinguishing confirmed device capabilities from non-exposed sensor features and untested paths:" FontSize="11" Foreground="#64748B" Margin="0,0,0,10" />
+
+                                <ItemsControl ItemsSource="{Binding Capabilities}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Background="#0A0E17" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="6" Padding="10" Margin="0,0,0,8">
+                                                <Grid>
+                                                    <Grid.RowDefinitions>
+                                                        <RowDefinition Height="Auto" />
+                                                        <RowDefinition Height="Auto" />
+                                                        <RowDefinition Height="Auto" />
+                                                    </Grid.RowDefinitions>
+
+                                                    <!-- Feature Name & Classification Badge -->
+                                                    <DockPanel Grid.Row="0" Margin="0,0,0,4">
+                                                        <Border DockPanel.Dock="Right"
+                                                                Background="{Binding BadgeBackground}"
+                                                                CornerRadius="4" Padding="6,2">
+                                                            <TextBlock Text="{Binding StatusText}" Foreground="{Binding BadgeForeground}" FontSize="10" FontWeight="Bold" />
+                                                        </Border>
+                                                        <TextBlock Text="{Binding Feature}" Foreground="#F8FAFC" FontSize="12" FontWeight="SemiBold" />
+                                                    </DockPanel>
+
+                                                    <!-- Details -->
+                                                    <TextBlock Grid.Row="1" Text="{Binding Details}" Foreground="#94A3B8" FontSize="11" Margin="0,0,0,3" TextWrapping="Wrap" />
+
+                                                    <!-- Architectural / RAW Note -->
+                                                    <TextBlock Grid.Row="2" Text="{Binding ArchitecturalNote}" Foreground="#64748B" FontSize="10" FontStyle="Italic" TextWrapping="Wrap" />
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+
+                                <!-- Clarification Notice -->
+                                <Border Background="#1C1917" BorderBrush="#78350F" BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,8,0,0">
+                                    <StackPanel>
+                                        <TextBlock Text="⚠ SENSOR RAW INTEGRITY NOTICE" FontWeight="Bold" FontSize="11" Foreground="#FBBF24" Margin="0,0,0,4" />
+                                        <TextBlock Text="Camera streams reporting MJPEG, YUY2, or FFmpeg 'yuvj422p' represent post-ISP demosaiced and quantized video. They do not contain linear sensor Bayer data. Logarithmic curves applied in post-processing cannot recover clipped highlights or reconstruct missing sensor dynamic range."
+                                                   FontSize="11" Foreground="#D6D3D1" LineHeight="16" TextWrapping="Wrap" />
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </TabItem>
+
+                    <!-- TAB 4: CAPTURED MEDIA LOG -->
+                    <TabItem Header="Media Log" Style="{StaticResource DarkTabItemStyle}">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,10,0,0">
+                            <StackPanel>
+                                <!-- Phase 23: Multi-Frame Still Enhancement Results Card -->
+                                <Border Background="#0B132B" BorderBrush="#1E3A8A" BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,0,0,12"
+                                        Visibility="{Binding HasOriginalStill, Converter={StaticResource BoolToVis}}">
+                                    <StackPanel>
+                                        <DockPanel LastChildFill="True" Margin="0,0,0,6">
+                                            <Border DockPanel.Dock="Right" Background="#1E293B" CornerRadius="4" Padding="6,2">
+                                                <TextBlock Text="EXPERIMENTAL" Foreground="#38BDF8" FontSize="10" FontWeight="Bold" />
+                                            </Border>
+                                            <TextBlock Text="MULTI-FRAME STILL INSPECTION" FontWeight="Bold" FontSize="11" Foreground="#60A5FA" />
+                                        </DockPanel>
+
+                                        <TextBlock Text="{Binding EnhancementSummaryText}" Foreground="#E2E8F0" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,8" />
+
+                                        <Grid Margin="0,0,0,6">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="8" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <!-- Original Single Still -->
+                                            <Button Grid.Column="0" Command="{Binding OpenOriginalStillCommand}"
+                                                    Style="{StaticResource SecondaryButtonStyle}" Height="28">
+                                                <TextBlock Text="🖼 Open Original" FontSize="11" />
+                                            </Button>
+
+                                            <!-- Enhanced Multi-Frame Still -->
+                                            <Button Grid.Column="2" Command="{Binding OpenEnhancedStillCommand}"
+                                                    IsEnabled="{Binding HasEnhancedComparison}"
+                                                    Style="{StaticResource SecondaryButtonStyle}" Height="28">
+                                                <TextBlock Text="✨ Open Enhanced" FontSize="11" Foreground="#38BDF8" FontWeight="SemiBold" />
+                                            </Button>
+                                        </Grid>
+
+                                        <Button Command="{Binding OpenSidecarJsonCommand}"
+                                                IsEnabled="{Binding HasEnhancedComparison}"
+                                                Style="{StaticResource SecondaryButtonStyle}" Height="26" Margin="0,0,0,6">
+                                            <TextBlock Text="📋 Open Metadata Sidecar (JSON)" FontSize="10" Foreground="#94A3B8" />
+                                        </Button>
+
+                                        <TextBlock Text="Notice: Multi-frame fusion combines sub-pixel aligned camera frames in linear optical RGB. Operates on 8-bit YUY2/MJPEG camera payloads (not Bayer sensor RAW). Video recording cadence and hardware controls remain completely untouched."
+                                                   FontSize="10" Foreground="#64748B" TextWrapping="Wrap" />
+                                    </StackPanel>
+                                </Border>
+
+                                <TextBlock Text="SESSION CAPTURE HISTORY" Style="{StaticResource SectionTitleStyle}" />
+                                <TextBlock Text="Saved still frames and MP4 recordings from this session:" FontSize="11" Foreground="#64748B" Margin="0,0,0,10" />
+
+                                <ItemsControl ItemsSource="{Binding CapturedMediaList}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Background="#0A0E17" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="6" Padding="10" Margin="0,0,0,6">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Text="{Binding}" Foreground="#E2E8F0" FontSize="11" TextWrapping="Wrap" />
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+
+                                <Grid Margin="0,10,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="8" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Button Grid.Column="0" Command="{Binding OpenRecordingsFolderCommand}"
+                                            Style="{StaticResource SecondaryButtonStyle}"
+                                            Content="Open Videos Folder"
+                                            ToolTip="Open %USERPROFILE%\Videos\WebcamLab"
+                                            Height="32" />
+                                    <Button Grid.Column="2" Command="{Binding OpenStillsFolderCommand}"
+                                            Style="{StaticResource SecondaryButtonStyle}"
+                                            Content="Open Stills Folder"
+                                            ToolTip="Open %USERPROFILE%\Pictures\WebcamLab"
+                                            Height="32" />
+                                </Grid>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </TabItem>
+
+                </TabControl>
+            </Border>
+        </Grid>
+
+        <!-- 3. ERROR BANNER (When HasError is True) -->
+        <Border Grid.Row="2" Background="#7F1D1D" BorderBrush="#DC2626" BorderThickness="0,1,0,1" Padding="14,8"
+                Visibility="{Binding HasError, Converter={StaticResource BoolToVis}}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="⚠ " FontSize="14" Foreground="#FECACA" />
+                    <TextBlock Text="{Binding ErrorMessage}" Foreground="#FFFFFF" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" TextWrapping="Wrap" />
+                </StackPanel>
+                <Button Grid.Column="1" Command="{Binding DismissErrorCommand}" Content="Dismiss"
+                        Style="{StaticResource SecondaryButtonStyle}" Padding="8,4" FontSize="11" />
+            </Grid>
+        </Border>
+
+        <!-- 4. BOTTOM STATUS BAR -->
+        <Border Grid.Row="3" Background="#0B0F19" BorderBrush="#1E293B" BorderThickness="0,1,0,0" Padding="16,8">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding StatusMessage}" Foreground="#94A3B8" FontSize="11" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="Dell UZ2315H Lab Edition • .NET 10 WPF Native" Foreground="#475569" FontSize="10" />
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

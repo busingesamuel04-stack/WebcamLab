@@ -1,0 +1,21 @@
+﻿# yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.6.0.schema.json
+
+PackageIdentifier: AntigravityImaging.WebcamLab
+PackageVersion: 1.1.0
+InstallerLocale: en-US
+MinimumOSVersion: 10.0.17763.0
+InstallerType: zip
+NestedInstallerType: portable
+NestedInstallerFiles:
+  - RelativeFilePath: WebcamLab.exe
+    PortableCommandAlias: webcamlab
+UpgradeBehavior: install
+Commands:
+  - webcamlab
+ReleaseDate: 2026-10-29
+Installers:
+  - Architecture: x64
+    InstallerUrl: https://github.com/AntigravityImaging/WebcamLab/releases/download/v1.1.0/WebcamLab-v1.1.0-native-win-x64.zip
+    InstallerSha256: 6F916F3B4A3F04C4360F3A707F9A13414D9589390254A7CE13D60064219DBE55
+ManifestType: installer
+ManifestVersion: 1.6.0

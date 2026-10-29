@@ -1,0 +1,28 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.6.0.schema.json
+
+PackageIdentifier: AntigravityImaging.WebcamLab
+PackageVersion: 1.1.0-rc2
+PackageLocale: en-US
+Publisher: Antigravity Imaging
+PublisherUrl: https://github.com/AntigravityImaging
+PublisherSupportUrl: https://github.com/AntigravityImaging/WebcamLab/issues
+PackageName: WebcamLab
+PackageUrl: https://github.com/AntigravityImaging/WebcamLab
+License: MIT
+LicenseUrl: https://github.com/AntigravityImaging/WebcamLab/blob/main/LICENSE
+Copyright: Copyright (c) 2026 Antigravity Imaging
+ShortDescription: Native Windows camera recording, sensor diagnostics, and cinema look management.
+Description: WebcamLab is a laboratory-grade native Windows camera recording and sensor diagnostic tool utilizing Windows Media Foundation for broadcast-accurate A/V synchronization, 3D LUT grading, and UVC ISP control.
+Moniker: webcamlab
+Tags:
+  - webcam
+  - camera
+  - media-foundation
+  - recording
+  - color-grading
+  - lut
+  - isp
+ReleaseNotes: Native Windows Media Foundation IMFSinkWriter promoted to default recording engine. Zero external FFmpeg binaries. Broadcast-accurate A/V synchronization.
+ReleaseNotesUrl: https://github.com/AntigravityImaging/WebcamLab/releases/tag/v1.1.0-rc2
+ManifestType: defaultLocale
+ManifestVersion: 1.6.0

@@ -1,0 +1,31 @@
+## Build and publish outputs
+bin/
+obj/
+publish/
+
+## Visual Studio / Rider / Antigravity temporary files
+.vs/
+*.user
+*.userosscache
+*.suo
+*.userprefs
+*.ide/
+.vscode/
+
+## Test logs, scratch files, and intermediate outputs
+TestResults.txt
+*.log
+TestOutputs/
+RegressionOutputs/
+Scratch/
+
+## Staging & test extraction folders
+*_Staging/
+*_Backups/
+Installer_Test_Install/
+Stable_Installer_Test/
+
+## Root-level temporary test captures
+*.mp4
+*.wav
+test_e_*.*
