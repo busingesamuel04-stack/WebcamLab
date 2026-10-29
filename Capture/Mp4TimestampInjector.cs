@@ -59,7 +59,10 @@ public static class Mp4TimestampInjector
         return false;
     }
 
-    public static bool InjectTrueSourceTimestamps(string mp4Path, IReadOnlyList<double> normalizedSampleTimesSec)
+    public static bool InjectTrueSourceTimestamps(
+        string mp4Path,
+        IReadOnlyList<double> normalizedSampleTimesSec,
+        double? targetTotalDurationSec = null)
     {
         if (string.IsNullOrWhiteSpace(mp4Path) || !File.Exists(mp4Path) || normalizedSampleTimesSec == null || normalizedSampleTimesSec.Count == 0)
         {
@@ -188,6 +191,21 @@ public static class Mp4TimestampInjector
                 if (i + 1 < sampleCount)
                 {
                     durationSec = normalizedSampleTimesSec[i + 1] - normalizedSampleTimesSec[i];
+                }
+                else if (targetTotalDurationSec.HasValue && targetTotalDurationSec.Value > normalizedSampleTimesSec[sampleCount - 1])
+                {
+                    double tailDelta = targetTotalDurationSec.Value - normalizedSampleTimesSec[sampleCount - 1];
+                    // Align tail video presentation duration to match audio duration (bounded to 1.0s)
+                    if (tailDelta > 0 && tailDelta <= 1.0)
+                    {
+                        durationSec = tailDelta;
+                    }
+                    else
+                    {
+                        durationSec = (sampleCount > 1)
+                            ? (normalizedSampleTimesSec[sampleCount - 1] - normalizedSampleTimesSec[sampleCount - 2])
+                            : (1.0 / 30.0);
+                    }
                 }
                 else if (sampleCount > 1)
                 {

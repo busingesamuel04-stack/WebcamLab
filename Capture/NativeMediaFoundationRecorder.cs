@@ -1108,7 +1108,11 @@ public class NativeMediaFoundationRecorder : IRecorderBackend, IDisposable
 
                 if (normalizedPts.Count > 0)
                 {
-                    bool injected = Mp4TimestampInjector.InjectTrueSourceTimestamps(_currentFilePath, normalizedPts);
+                    double? targetDurationSec = (_isAudioEnabled && _audioSamplesWritten > 0)
+                        ? (double)_audioSamplesWritten / 48000.0
+                        : null;
+
+                    bool injected = Mp4TimestampInjector.InjectTrueSourceTimestamps(_currentFilePath, normalizedPts, targetDurationSec);
                     Debug.WriteLine($"[NativeMediaFoundationRecorder] VFR Hardware Timestamp Injection result: {injected}");
                 }
             }

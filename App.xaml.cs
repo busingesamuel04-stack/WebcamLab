@@ -677,6 +677,30 @@ public partial class App : Application
             return;
         }
 
+        if (e.Args.Any(a => a.Equals("--phase40e", StringComparison.OrdinalIgnoreCase) ||
+                            a.Equals("-p40e", StringComparison.OrdinalIgnoreCase) ||
+                            a.Equals("--release-audit", StringComparison.OrdinalIgnoreCase) ||
+                            a.Equals("--final-audit", StringComparison.OrdinalIgnoreCase)))
+        {
+            if (!AttachConsole(ATTACH_PARENT_PROCESS))
+            {
+                AllocConsole();
+            }
+
+            var stdHandle = GetStdHandle(STD_OUTPUT_HANDLE);
+            var safeHandle = new Microsoft.Win32.SafeHandles.SafeFileHandle(stdHandle, ownsHandle: false);
+            var fs = new System.IO.FileStream(safeHandle, System.IO.FileAccess.Write);
+            var stdOut = new System.IO.StreamWriter(fs, System.Text.Encoding.UTF8) { AutoFlush = true };
+            Console.SetOut(stdOut);
+            Console.SetError(stdOut);
+
+            SynchronizationContext.SetSynchronizationContext(null);
+
+            bool ok = Task.Run(async () => await WebcamLab.Core.ReverseEngineering.Phase40EReleaseAuditRunner.RunAllAsync()).GetAwaiter().GetResult();
+            Shutdown(ok ? 0 : 1);
+            return;
+        }
+
         if (e.Args.Any(a => a.Equals("--phase17", StringComparison.OrdinalIgnoreCase) ||
                             a.Equals("-p17", StringComparison.OrdinalIgnoreCase) ||
                             a.Equals("--drift-profile", StringComparison.OrdinalIgnoreCase) ||

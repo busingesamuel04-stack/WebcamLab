@@ -1,5 +1,30 @@
 # WebcamLab Release Notes
 
+## Version 1.1.0-rc4 — Native Windows Release Candidate 4 (Build 2026.10)
+
+WebcamLab v1.1.0-rc4 incorporates extensive hardening for sustained long-form recording under CPU load and resilience against real-world hardware interruptions (camera disconnection, USB microphone loss, multi-threaded stop races, and cold USB spinup delays).
+
+### 1. Key Improvements in v1.1.0-rc4
+
+- **Bounded Interleaving & Queue Starvation Immunity (Defect 40B-1):**
+  - Allows either encoding queue (video or audio) to lead by up to $500\text{ ms}$ when the sibling queue is momentarily starved due to CPU load or thread scheduling jitter.
+  - Eliminates mutual queue starvation during long-form recordings under multi-core system stress.
+- **Interruption Resilience & Non-Blocking Video Capture (Defect 40D-1):**
+  - Synthesizes transparent audio silence if the audio source disconnects or drops packets mid-recording, ensuring the Windows Media Foundation `IMFSinkWriter` multiplexer timeline advances alongside video.
+  - Guarantees video recording is never blocked or deadlocked by audio hardware hiccups, unplugged USB microphones, or buffer underruns.
+- **Cold USB Audio Spinup Calibration (Defect 40D-2):**
+  - Extended startup audio calibration limit to $3.5\text{ seconds}$ to cleanly accommodate cold USB audio endpoints (e.g. monitor speakerphones) without uncompensated track gaps or finalization hangs.
+- **Sub-Millisecond VFR Tail Duration Alignment:**
+  - Enhanced `Mp4TimestampInjector` to align the final video frame presentation duration with the audio track duration, ensuring track-duration delta ($\Delta t$) strictly complies with broadcast synchronization requirements ($\le 35\text{ ms}$).
+- **Concurrency & Stop Idempotency Hardening:**
+  - Multi-threaded stop requests and early shutdowns execute safely without race conditions or orphaned UI state.
+- **Validation & Test Coverage:**
+  - Automated test suite expanded to **110 tests** (100% passing), including complete audio loss resilience validation.
+  - Physical regression suite verified (8/8 tests passing) on Dell UZ2315H.
+  - Physical interruption suite validated (7/7 runs passing): camera disconnect at 6s, audio severed at 6s, 5 concurrent stops, 35s CPU load run, and post-load recovery run.
+
+---
+
 ## Version 1.1.0-rc3 — Native Windows Release Candidate 3 (Build 2026.10)
 
 WebcamLab v1.1.0-rc3 resolves **Defect 39-1** in the Native Media Foundation recording engine, ensuring sustained recordings of any length finalize reliably with guaranteed MP4 container integrity and zero multiplexing stalls.

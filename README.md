@@ -41,7 +41,7 @@ Unlike standard camera applications that enforce generic OS auto-enhancements an
 ## Quick Start
 
 1. **Extract the Release Bundle:**
-   Download and extract `WebcamLab-v1.1.0-rc3-native-win-x64.zip` to any folder on your computer.
+   Download and extract `WebcamLab-v1.1.0-rc4-native-win-x64.zip` to any folder on your computer.
 2. **Launch Application:**
    Run `WebcamLab.exe`. No installer or administrative rights are required.
 3. **Select Camera & Audio Device:**
