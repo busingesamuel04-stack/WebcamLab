@@ -19,10 +19,56 @@ namespace WebcamLab.Capture;
 /// </summary>
 public static class Mp4TimestampInjector
 {
+    public static bool HasValidMoovAtom(string mp4Path)
+    {
+        if (string.IsNullOrWhiteSpace(mp4Path) || !File.Exists(mp4Path)) return false;
+        try
+        {
+            var fi = new FileInfo(mp4Path);
+            if (fi.Length < 64) return false;
+
+            using var fs = new FileStream(mp4Path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            byte[] header = new byte[8];
+            long pos = 0;
+            long len = fs.Length;
+            while (pos + 8 <= len)
+            {
+                fs.Position = pos;
+                int read = fs.Read(header, 0, 8);
+                if (read < 8) break;
+                uint size32 = ((uint)header[0] << 24) | ((uint)header[1] << 16) | ((uint)header[2] << 8) | header[3];
+                string type = Encoding.ASCII.GetString(header, 4, 4);
+                if (type == "moov") return true;
+
+                long boxSize = size32;
+                if (size32 == 1 && pos + 16 <= len)
+                {
+                    byte[] ext = new byte[8];
+                    fs.ReadExactly(ext, 0, 8);
+                    boxSize = (long)(((ulong)((uint)ext[0] << 24 | (uint)ext[1] << 16 | (uint)ext[2] << 8 | ext[3]) << 32) |
+                                     ((uint)ext[4] << 24 | (uint)ext[5] << 16 | (uint)ext[6] << 8 | ext[7]));
+                }
+                else if (size32 <= 0)
+                {
+                    break;
+                }
+                pos += boxSize;
+            }
+        }
+        catch { }
+        return false;
+    }
+
     public static bool InjectTrueSourceTimestamps(string mp4Path, IReadOnlyList<double> normalizedSampleTimesSec)
     {
         if (string.IsNullOrWhiteSpace(mp4Path) || !File.Exists(mp4Path) || normalizedSampleTimesSec == null || normalizedSampleTimesSec.Count == 0)
         {
+            return false;
+        }
+
+        if (!HasValidMoovAtom(mp4Path))
+        {
+            Debug.WriteLine($"[Mp4TimestampInjector] Aborting: MP4 does not contain a valid 'moov' atom ({mp4Path}).");
             return false;
         }
 

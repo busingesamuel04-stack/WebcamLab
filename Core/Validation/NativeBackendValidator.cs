@@ -40,6 +40,8 @@ public static class NativeBackendValidator
         results.Add(TestCFRFrameSlotAccounting());
         results.Add(TestZeroExternalProcessSpawning());
         results.Add(TestActionableFailureContract());
+        results.Add(TestSustainedInterleavedMultiplexingLoad());
+        results.Add(TestMoovAtomValidationGuard());
 
         return results;
     }
@@ -582,6 +584,136 @@ public static class NativeBackendValidator
                 ExecutionMs = sw.Elapsed.TotalMilliseconds,
                 Details = $"Exception: {ex.Message}"
             };
+        }
+    }
+
+    private static NativeBackendValidationResult TestSustainedInterleavedMultiplexingLoad()
+    {
+        var sw = Stopwatch.StartNew();
+        string tempMp4 = Path.Combine(Path.GetTempPath(), $"WebcamLab_Test_Sustained_{Guid.NewGuid():N}.mp4");
+        try
+        {
+            using (var recorder = new NativeMediaFoundationRecorder())
+            {
+                recorder.Start(
+                    tempMp4,
+                    640,
+                    480,
+                    30.0,
+                    RecordingMode.OriginalCamera,
+                    null,
+                    null,
+                    "RGB32",
+                    RecordingCadenceMode.Capture_Faithful_VFR,
+                    enableAudio: false);
+
+                byte[] dummy = new byte[640 * 480 * 4];
+                GCHandle pin = GCHandle.Alloc(dummy, GCHandleType.Pinned);
+                try
+                {
+                    IntPtr pBuf = pin.AddrOfPinnedObject();
+                    for (int i = 0; i < 300; i++)
+                    {
+                        recorder.WriteFrame(pBuf, dummy.Length, (long)(i * 333_333), Stopwatch.GetTimestamp());
+                        if (recorder.QueueBacklog > 15)
+                        {
+                            Thread.Sleep(5);
+                        }
+                        else
+                        {
+                            Thread.Sleep(1);
+                        }
+                    }
+                }
+                finally
+                {
+                    pin.Free();
+                }
+
+                recorder.Stop();
+
+                int captured = recorder.FramesCaptured;
+                int encoded = recorder.FramesEncoded;
+                int dropped = recorder.DroppedFrames;
+                int backlog = recorder.QueueBacklog;
+
+                bool fileExists = File.Exists(tempMp4);
+                long fileLength = fileExists ? new FileInfo(tempMp4).Length : 0;
+                bool hasMoov = Mp4TimestampInjector.HasValidMoovAtom(tempMp4);
+
+                sw.Stop();
+                bool passed = captured == 300 && encoded == 300 && dropped == 0 && backlog == 0 && fileExists && fileLength > 5000 && hasMoov;
+                return new NativeBackendValidationResult
+                {
+                    Name = "9. Sustained Multiplexing Load & Verified Finalization (300 Frames)",
+                    Passed = passed,
+                    ExecutionMs = sw.Elapsed.TotalMilliseconds,
+                    Details = $"Captured={captured}, Encoded={encoded}, Dropped={dropped}, Backlog={backlog}, FileSize={fileLength:N0} bytes, HasMoov={hasMoov}"
+                };
+            }
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            return new NativeBackendValidationResult
+            {
+                Name = "9. Sustained Multiplexing Load & Verified Finalization (300 Frames)",
+                Passed = false,
+                ExecutionMs = sw.Elapsed.TotalMilliseconds,
+                Details = $"Exception: {ex.Message}"
+            };
+        }
+        finally
+        {
+            try { if (File.Exists(tempMp4)) File.Delete(tempMp4); } catch { }
+        }
+    }
+
+    private static NativeBackendValidationResult TestMoovAtomValidationGuard()
+    {
+        var sw = Stopwatch.StartNew();
+        string tempMp4 = Path.Combine(Path.GetTempPath(), $"WebcamLab_Test_MoovGuard_{Guid.NewGuid():N}.mp4");
+        try
+        {
+            // 1. Non-existent file
+            bool nonExistentRejected = !Mp4TimestampInjector.HasValidMoovAtom("Z:\\NonExistent_File.mp4");
+
+            // 2. Truncated open-ended mdat file (simulating Defect 39-1)
+            byte[] truncatedBytes = new byte[128];
+            // ftyp
+            truncatedBytes[0] = 0; truncatedBytes[1] = 0; truncatedBytes[2] = 0; truncatedBytes[3] = 24;
+            truncatedBytes[4] = (byte)'f'; truncatedBytes[5] = (byte)'t'; truncatedBytes[6] = (byte)'y'; truncatedBytes[7] = (byte)'p';
+            // mdat with size 0
+            truncatedBytes[24] = 0; truncatedBytes[25] = 0; truncatedBytes[26] = 0; truncatedBytes[27] = 0;
+            truncatedBytes[28] = (byte)'m'; truncatedBytes[29] = (byte)'d'; truncatedBytes[30] = (byte)'a'; truncatedBytes[31] = (byte)'t';
+            File.WriteAllBytes(tempMp4, truncatedBytes);
+
+            bool truncatedRejected = !Mp4TimestampInjector.HasValidMoovAtom(tempMp4);
+
+            sw.Stop();
+            bool passed = nonExistentRejected && truncatedRejected;
+            return new NativeBackendValidationResult
+            {
+                Name = "10. MP4 Container Validation Guard (Moov Atom Integrity)",
+                Passed = passed,
+                ExecutionMs = sw.Elapsed.TotalMilliseconds,
+                Details = $"NonExistentRejected={nonExistentRejected}, TruncatedRejected={truncatedRejected}"
+            };
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            return new NativeBackendValidationResult
+            {
+                Name = "10. MP4 Container Validation Guard (Moov Atom Integrity)",
+                Passed = false,
+                ExecutionMs = sw.Elapsed.TotalMilliseconds,
+                Details = $"Exception: {ex.Message}"
+            };
+        }
+        finally
+        {
+            try { if (File.Exists(tempMp4)) File.Delete(tempMp4); } catch { }
         }
     }
 }

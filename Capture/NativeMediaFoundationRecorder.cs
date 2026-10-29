@@ -117,6 +117,9 @@ public class NativeMediaFoundationRecorder : IRecorderBackend, IDisposable
     private CancellationTokenSource? _writerCts;
     private readonly ManualResetEventSlim _initDone = new(false);
     private Exception? _initException;
+    private readonly ManualResetEventSlim _workerFinishedEvent = new(false);
+    private int _finalizeHResult = 0;
+    private Exception? _workerException = null;
 
     // Configuration
     private RecordingCadenceMode _cadenceMode = RecordingCadenceMode.CFR_Compatibility;
@@ -248,7 +251,7 @@ public class NativeMediaFoundationRecorder : IRecorderBackend, IDisposable
 
             // 1. Start async queues and background writer (which initializes IMFSinkWriter on its dedicated MTA thread)
             _videoQueue = new BlockingCollection<VideoFrameItem>(new ConcurrentQueue<VideoFrameItem>(), 120);
-            _audioQueue = new BlockingCollection<AudioSampleItem>(new ConcurrentQueue<AudioSampleItem>(), 300);
+            _audioQueue = new BlockingCollection<AudioSampleItem>(new ConcurrentQueue<AudioSampleItem>(), 1000);
             _writerCts = new CancellationTokenSource();
             _initDone.Reset();
             _initException = null;
@@ -575,10 +578,14 @@ public class NativeMediaFoundationRecorder : IRecorderBackend, IDisposable
 
     private void ProcessEncodingQueues()
     {
-        MediaFoundationNative.MFStartup(0x00020070, 0);
+        _workerFinishedEvent.Reset();
+        _finalizeHResult = 0;
+        _workerException = null;
 
         try
         {
+            MediaFoundationNative.MFStartup(0x00020070, 0);
+
             // 1. Initialize IMFSinkWriter with Hardware MFT support (and software fallback)
             InitializeSinkWriter(_currentFilePath!, _frameWidth, _frameHeight);
 
@@ -604,6 +611,7 @@ public class NativeMediaFoundationRecorder : IRecorderBackend, IDisposable
         {
             _initException = ex;
             _initDone.Set();
+            _workerFinishedEvent.Set();
             return;
         }
 
@@ -613,121 +621,175 @@ public class NativeMediaFoundationRecorder : IRecorderBackend, IDisposable
         long writtenVideoFrames = 0;
         VideoFrameItem? lastVideoItem = null;
 
-        // Drain barrier: Run until both queues are completed and completely empty
-        while (!(_videoQueue?.IsCompleted ?? true) || (_isAudioEnabled && !(_audioQueue?.IsCompleted ?? true)))
+        VideoFrameItem? pendingVideo = null;
+        AudioSampleItem? pendingAudio = null;
+
+        try
         {
-            bool hadWork = false;
-
-            // 1. Process Video
-            if (_videoQueue != null && _videoQueue.TryTake(out var vItem, 5))
+            // Chronologically interleaved multiplexing loop:
+            // Always encode whichever stream has the smaller presentation timestamp (PTS).
+            // This prevents either stream from leading by more than a single buffer,
+            // preventing SinkWriter multiplexer buffer starvation, throttling, and queue build-up.
+            while (true)
             {
-                hadWork = true;
-                lastVideoItem = vItem;
-                int count = Math.Max(1, vItem.RepeatCount);
-                for (int r = 0; r < count; r++)
+                // Fetch next video frame if slot empty
+                if (pendingVideo == null && _videoQueue != null && !_videoQueue.IsCompleted)
                 {
-                    WriteVideoSample(vItem, writtenVideoFrames, videoFrameDurationHns);
-                    writtenVideoFrames++;
-                    _framesEncoded++;
+                    _videoQueue.TryTake(out pendingVideo);
                 }
-                _bufferPool.Enqueue(vItem.Buffer);
-            }
 
-            // 2. Process Audio (wait for video frame 0 to establish timeline epoch if video stream active)
-            if (_isAudioEnabled && _audioQueue != null)
-            {
-                if (_framesCaptured == 0 && !(_videoQueue?.IsCompleted ?? true) && !(_writerCts?.IsCancellationRequested ?? false))
+                // Fetch next audio sample if slot empty and audio active
+                if (_isAudioEnabled && pendingAudio == null && _audioQueue != null && !_audioQueue.IsCompleted)
                 {
-                    // Yield briefly to let initial video frame arrive
+                    _audioQueue.TryTake(out pendingAudio);
                 }
-                else if (_audioQueue.TryTake(out var aItem, 5))
-                {
-                    hadWork = true;
-                    WriteAudioSample(aItem);
-                }
-            }
 
-            if (!hadWork)
-            {
+                // Check termination condition: both queues completed and both slots empty
+                bool videoDone = pendingVideo == null && (_videoQueue?.IsCompleted ?? true);
+                bool audioDone = !_isAudioEnabled || (pendingAudio == null && (_audioQueue?.IsCompleted ?? true));
+
+                if (videoDone && audioDone)
+                {
+                    break;
+                }
+
                 if (_writerCts != null && _writerCts.IsCancellationRequested)
                 {
                     break;
                 }
-                Thread.Sleep(1);
-            }
-        }
 
-        // Post-drain tail duration alignment:
-        if (_isAudioEnabled && _framesEncoded > 0 && _sinkWriter != null)
-        {
-            long videoDurHns = (_cadenceMode == RecordingCadenceMode.CFR_Compatibility)
-                ? (writtenVideoFrames * videoFrameDurationHns)
-                : ((_finalSourceTimestampHns >= _initialSourceTimestampHns) ? (_finalSourceTimestampHns - _initialSourceTimestampHns + videoFrameDurationHns) : 0);
-
-            long audioDurHns = (long)(_audioSamplesWritten * 10_000_000.0 / 48000.0);
-            long deltaHns = videoDurHns - audioDurHns;
-            if (deltaHns > 50_000L) // Video outlasts audio by > 5 ms
-            {
-                long tailSilenceFrames = (long)Math.Round((double)deltaHns * 48000.0 / 10_000_000.0);
-                WriteSilenceAudioFrames(tailSilenceFrames, 48000, 2);
-            }
-            else if (deltaHns < -50_000L && lastVideoItem != null)
-            {
-                // Audio outlasts video by > 5 ms: add needed duplicate frames to balance timeline
-                long extraFrames = (long)Math.Round((double)(-deltaHns) / videoFrameDurationHns);
-                if (extraFrames < 1) extraFrames = 1;
-                for (int e = 0; e < extraFrames; e++)
+                // Determine which sample to write next based on presentation timestamp (PTS)
+                bool writeVideo;
+                if (pendingVideo != null && pendingAudio != null)
                 {
-                    if (_cadenceMode == RecordingCadenceMode.Capture_Faithful_VFR)
-                    {
-                        long paddedHns = _finalSourceTimestampHns + videoFrameDurationHns;
-                        var paddedItem = new VideoFrameItem
-                        {
-                            Buffer = lastVideoItem.Buffer,
-                            Length = lastVideoItem.Length,
-                            SourceTimestampHns = paddedHns,
-                            QpcTicks = Stopwatch.GetTimestamp()
-                        };
-                        WriteVideoSample(paddedItem, writtenVideoFrames, videoFrameDurationHns);
-                        _finalSourceTimestampHns = paddedHns;
-                        lock (_auditLock)
-                        {
-                            _vfrNormalizedSampleTimes.Add((paddedHns - _initialSourceTimestampHns) / 10_000_000.0);
-                        }
-                    }
-                    else
-                    {
-                        WriteVideoSample(lastVideoItem, writtenVideoFrames, videoFrameDurationHns);
-                    }
-                    writtenVideoFrames++;
-                    _framesEncoded++;
+                    long vPts = (_cadenceMode == RecordingCadenceMode.CFR_Compatibility)
+                        ? (writtenVideoFrames * videoFrameDurationHns)
+                        : (pendingVideo.SourceTimestampHns - _initialSourceTimestampHns);
+
+                    long aPts = (long)(_audioSamplesWritten * 10_000_000.0 / pendingAudio.SampleRate);
+
+                    writeVideo = (vPts <= aPts);
                 }
-            }
-        }
-
-        // Finalize and release IMFSinkWriter on this dedicated encoder thread
-        if (_sinkWriter != null)
-        {
-            try
-            {
-                if (_framesEncoded > 0)
+                else if (pendingVideo != null && audioDone)
                 {
-                    _sinkWriter.Finalize();
+                    writeVideo = true;
+                }
+                else if (pendingAudio != null && videoDone)
+                {
+                    writeVideo = false;
+                }
+                else if (pendingVideo != null && !_isAudioEnabled)
+                {
+                    writeVideo = true;
                 }
                 else
                 {
-                    Debug.WriteLine("[NativeMediaFoundationRecorder] Stop called with 0 encoded frames. Skipping SinkWriter.Finalize().");
+                    // Waiting for more data from capture hardware
+                    Thread.Sleep(1);
+                    continue;
+                }
+
+                if (writeVideo && pendingVideo != null)
+                {
+                    lastVideoItem = pendingVideo;
+                    int count = Math.Max(1, pendingVideo.RepeatCount);
+                    for (int r = 0; r < count; r++)
+                    {
+                        WriteVideoSample(pendingVideo, writtenVideoFrames, videoFrameDurationHns);
+                        writtenVideoFrames++;
+                        _framesEncoded++;
+                    }
+                    _bufferPool.Enqueue(pendingVideo.Buffer);
+                    pendingVideo = null;
+                }
+                else if (!writeVideo && pendingAudio != null)
+                {
+                    WriteAudioSample(pendingAudio);
+                    pendingAudio = null;
                 }
             }
-            catch (Exception ex)
+
+            // Post-drain tail duration alignment:
+            if (_isAudioEnabled && _framesEncoded > 0 && _sinkWriter != null)
             {
-                Debug.WriteLine($"[NativeMediaFoundationRecorder] Finalize exception: {ex.Message}");
+                long videoDurHns = (_cadenceMode == RecordingCadenceMode.CFR_Compatibility)
+                    ? (writtenVideoFrames * videoFrameDurationHns)
+                    : ((_finalSourceTimestampHns >= _initialSourceTimestampHns) ? (_finalSourceTimestampHns - _initialSourceTimestampHns + videoFrameDurationHns) : 0);
+
+                long audioDurHns = (long)(_audioSamplesWritten * 10_000_000.0 / 48000.0);
+                long deltaHns = videoDurHns - audioDurHns;
+                if (deltaHns > 50_000L) // Video outlasts audio by > 5 ms
+                {
+                    long tailSilenceFrames = (long)Math.Round((double)deltaHns * 48000.0 / 10_000_000.0);
+                    WriteSilenceAudioFrames(tailSilenceFrames, 48000, 2);
+                }
+                else if (deltaHns < -50_000L && lastVideoItem != null)
+                {
+                    long extraFrames = (long)Math.Round((double)(-deltaHns) / videoFrameDurationHns);
+                    if (extraFrames < 1) extraFrames = 1;
+                    for (int e = 0; e < extraFrames; e++)
+                    {
+                        if (_cadenceMode == RecordingCadenceMode.Capture_Faithful_VFR)
+                        {
+                            long paddedHns = _finalSourceTimestampHns + videoFrameDurationHns;
+                            var paddedItem = new VideoFrameItem
+                            {
+                                Buffer = lastVideoItem.Buffer,
+                                Length = lastVideoItem.Length,
+                                SourceTimestampHns = paddedHns,
+                                QpcTicks = Stopwatch.GetTimestamp()
+                            };
+                            WriteVideoSample(paddedItem, writtenVideoFrames, videoFrameDurationHns);
+                            _finalSourceTimestampHns = paddedHns;
+                            lock (_auditLock)
+                            {
+                                _vfrNormalizedSampleTimes.Add((paddedHns - _initialSourceTimestampHns) / 10_000_000.0);
+                            }
+                        }
+                        else
+                        {
+                            WriteVideoSample(lastVideoItem, writtenVideoFrames, videoFrameDurationHns);
+                        }
+                        writtenVideoFrames++;
+                        _framesEncoded++;
+                    }
+                }
             }
-            finally
+
+            // Finalize and release IMFSinkWriter on this dedicated encoder thread
+            if (_sinkWriter != null)
             {
-                Marshal.ReleaseComObject(_sinkWriter);
-                _sinkWriter = null;
+                try
+                {
+                    if (_framesEncoded > 0)
+                    {
+                        _finalizeHResult = _sinkWriter.Finalize();
+                        if (_finalizeHResult != 0)
+                        {
+                            Debug.WriteLine($"[NativeMediaFoundationRecorder] IMFSinkWriter.Finalize failed: hr=0x{_finalizeHResult:X8}");
+                        }
+                    }
+                }
+                finally
+                {
+                    Marshal.ReleaseComObject(_sinkWriter);
+                    _sinkWriter = null;
+                }
             }
+        }
+        catch (Exception ex)
+        {
+            _workerException = ex;
+            Debug.WriteLine($"[NativeMediaFoundationRecorder] Worker thread error: {ex.Message}");
+        }
+        finally
+        {
+            try
+            {
+                MediaFoundationNative.MFShutdown();
+            }
+            catch { }
+            _workerFinishedEvent.Set();
         }
     }
 
@@ -759,7 +821,11 @@ public class NativeMediaFoundationRecorder : IRecorderBackend, IDisposable
         sample.SetSampleTime(ptsHns);
         sample.SetSampleDuration(nominalDurationHns);
 
-        _sinkWriter.WriteSample(_videoStreamIndex, sample);
+        hr = _sinkWriter.WriteSample(_videoStreamIndex, sample);
+        if (hr != 0)
+        {
+            Debug.WriteLine($"[NativeMediaFoundationRecorder] WriteVideoSample failed: hr=0x{hr:X8} (frame {frameIndex})");
+        }
 
         Marshal.ReleaseComObject(sample);
         Marshal.ReleaseComObject(vBuf);
@@ -799,7 +865,11 @@ public class NativeMediaFoundationRecorder : IRecorderBackend, IDisposable
         sample.SetSampleTime(ptsHns);
         sample.SetSampleDuration(durHns);
 
-        _sinkWriter.WriteSample(_audioStreamIndex, sample);
+        hr = _sinkWriter.WriteSample(_audioStreamIndex, sample);
+        if (hr != 0)
+        {
+            Debug.WriteLine($"[NativeMediaFoundationRecorder] WriteAudioSample failed: hr=0x{hr:X8}");
+        }
 
         _audioSamplesWritten += item.SampleCount;
 
@@ -811,9 +881,9 @@ public class NativeMediaFoundationRecorder : IRecorderBackend, IDisposable
     {
         // 1. Determine video hardware start time in 100ns units
         long videoStartHns;
-        if (_initialSourceTimestampHns > 10_000_000_000L)
+        if (_initialSourceTimestampHns > 10_000_000_000L && firstItem.QpcPosition > 10_000_000_000L)
         {
-            // Camera UVC driver provides true system QPC timestamp in 100ns units
+            // Both are system QPC timestamps in 100ns units
             videoStartHns = _initialSourceTimestampHns;
         }
         else if (_firstVideoArrivalQpcTicks > 0)
@@ -830,6 +900,13 @@ public class NativeMediaFoundationRecorder : IRecorderBackend, IDisposable
 
         // 3. Compute measured start delay between audio and video
         long offsetHns = audioStartHns - videoStartHns;
+        // Sanity limit: If audio and video timestamps differ by more than 2.0s, clamp to avoid runaway silence
+        if (offsetHns > 20_000_000L || offsetHns < -20_000_000L)
+        {
+            Debug.WriteLine($"[NativeMediaFoundationRecorder] Out-of-bounds start offset ({offsetHns / 10_000.0:F2} ms). Clamping to 0.");
+            offsetHns = 0;
+        }
+
         double offsetMs = offsetHns / 10_000.0;
         Debug.WriteLine($"[NativeMediaFoundationRecorder] Calibrated A/V start offset: {offsetMs:F2} ms ({offsetHns} hns)");
 
@@ -917,9 +994,26 @@ public class NativeMediaFoundationRecorder : IRecorderBackend, IDisposable
             _videoQueue?.CompleteAdding();
             _audioQueue?.CompleteAdding();
 
-            // 3. Wait for the encoder worker thread to drain every single queued frame and packet, and finalize SinkWriter
-            _writerThread?.Join(10000);
+            // 3. Wait on completion barrier with adaptive watchdog timeout
+            int watchdogTimeoutMs = Math.Max(30000, (_framesCaptured * 50) + 15000);
+            bool finished = _workerFinishedEvent.Wait(watchdogTimeoutMs);
+            _writerThread?.Join(2000);
             _writerThread = null;
+
+            if (!finished)
+            {
+                throw new TimeoutException($"Native Media Foundation encoder worker thread failed to finalize within {watchdogTimeoutMs} ms (Frames captured: {_framesCaptured}, Encoded: {_framesEncoded}).");
+            }
+
+            if (_workerException != null)
+            {
+                throw new InvalidOperationException($"Native Media Foundation encoder failed during processing: {_workerException.Message}", _workerException);
+            }
+
+            if (_finalizeHResult != 0)
+            {
+                throw new InvalidOperationException($"IMFSinkWriter.Finalize failed with HRESULT 0x{_finalizeHResult:X8}.");
+            }
 
             // 4. Post-Finalization VFR hardware timestamp injection
             if (_cadenceMode == RecordingCadenceMode.Capture_Faithful_VFR &&
@@ -1108,6 +1202,7 @@ public class NativeMediaFoundationRecorder : IRecorderBackend, IDisposable
         _audioQueue?.Dispose();
         _writerCts?.Dispose();
         _initDone.Dispose();
+        _workerFinishedEvent.Dispose();
         GC.SuppressFinalize(this);
     }
 }
