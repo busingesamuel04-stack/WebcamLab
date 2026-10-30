@@ -1,4 +1,20 @@
-# WebcamLab Release Notes
+﻿# WebcamLab Release Notes
+
+## Version 1.1.0-rc5 â€” Native Windows Release Candidate 5 (Build 2026.10)
+
+WebcamLab v1.1.0-rc5 resolves a critical startup crash in interactive GUI mode caused by TwoWay data binding on read-only audio peak and RMS level meter properties.
+
+### 1. Key Improvements in v1.1.0-rc5
+
+- **WPF TwoWay Binding Conflict Resolution on Audio Level Meters:**
+  - *Root Cause Resolved:* In v1.1.0-rc4, AudioPeakLevel was declared with a private setter (public float AudioPeakLevel { get; private set; }). In WPF, ProgressBar.Value inherits from RangeBase.Value, which registers BindsTwoWayByDefault = true. When MainWindow.xaml instantiated during normal interactive GUI startup (App.OnStartup), WPF attempted to attach a TwoWay binding to a read-only property, throwing System.InvalidOperationException and terminating the application before the main window became visible.
+  - *Fix:* Explicitly specified Mode=OneWay on all ProgressBar.Value bindings in MainWindow.xaml (lines 448, 452, and 778). Added backing property AudioRmsLevel with private set to match AudioPeakLevel and provide real-time updates for both meters in the stacked dual audio meter.
+- **Exhaustive XAML Data Binding Audit:**
+  - Audited all property bindings across MainWindow.xaml against MainViewModel.cs and all domain models. Confirmed that all 15 Slider elements, all 6 TextBox elements, all 24 CheckBox/RadioButton elements, and all ComboBox/ListBox selectors bind to properties with public setters or explicitly specify Mode=OneWay.
+- **Interactive GUI Startup Verification Suite:**
+  - Added dedicated interactive GUI startup verification test runner (--phase41 / --gui-test) executing on an STA thread to validate that MainWindow visual tree loads, registers HWND, remains responsive without exceptions, updates live audio meters, and performs physical recording sessions.
+
+---
 
 ## Version 1.1.0-rc4 — Native Windows Release Candidate 4 (Build 2026.10)
 

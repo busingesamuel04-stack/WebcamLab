@@ -1,6 +1,6 @@
-# Third-Party Licenses & Software Component Notices
+﻿# Third-Party Licenses & Software Component Notices
 
-**Product:** WebcamLab v1.1.0-rc4 Native Windows x64 (`WebcamLab-v1.1.0-rc4-native-win-x64`)  
+**Product:** WebcamLab v1.1.0-rc5 Native Windows x64 (`WebcamLab-v1.1.0-rc5-native-win-x64`)  
 **Publisher:** Antigravity Imaging  
 **Distribution Model:** Self-contained native Windows desktop application with zero external GPL binaries.
 

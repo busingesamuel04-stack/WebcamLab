@@ -375,6 +375,13 @@ public class MainViewModel : ViewModelBase, IDisposable
         private set => SetProperty(ref _audioPeakLevel, value);
     }
 
+    private float _audioRmsLevel;
+    public float AudioRmsLevel
+    {
+        get => _audioRmsLevel;
+        private set => SetProperty(ref _audioRmsLevel, value);
+    }
+
     private float _audioPeakDb = -60f;
     public float AudioPeakDb
     {
@@ -1746,6 +1753,7 @@ public class MainViewModel : ViewModelBase, IDisposable
         if (_cameraService.AudioCapture.IsCapturing)
         {
             AudioPeakLevel = _cameraService.AudioCapture.PeakLevel;
+            AudioRmsLevel = _cameraService.AudioCapture.RmsLevel;
             AudioPeakDb = _cameraService.AudioCapture.PeakDb;
             AudioRmsDb = _cameraService.AudioCapture.RmsDb;
             IsAudioClipping = _cameraService.AudioCapture.IsClipping;
@@ -1759,6 +1767,7 @@ public class MainViewModel : ViewModelBase, IDisposable
         else
         {
             AudioPeakLevel = 0f;
+            AudioRmsLevel = 0f;
             AudioPeakDb = -60f;
             AudioRmsDb = -60f;
             IsAudioClipping = false;

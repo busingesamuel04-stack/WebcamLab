@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Windows;
@@ -697,6 +697,27 @@ public partial class App : Application
             SynchronizationContext.SetSynchronizationContext(null);
 
             bool ok = Task.Run(async () => await WebcamLab.Core.ReverseEngineering.Phase40EReleaseAuditRunner.RunAllAsync()).GetAwaiter().GetResult();
+            Shutdown(ok ? 0 : 1);
+            return;
+        }
+        if (e.Args.Any(a => a.Equals("--phase41", StringComparison.OrdinalIgnoreCase) ||
+                            a.Equals("-p41", StringComparison.OrdinalIgnoreCase) ||
+                            a.Equals("--gui-test", StringComparison.OrdinalIgnoreCase) ||
+                            a.Equals("--verify-gui", StringComparison.OrdinalIgnoreCase)))
+        {
+            if (!AttachConsole(ATTACH_PARENT_PROCESS))
+            {
+                AllocConsole();
+            }
+
+            var stdHandle = GetStdHandle(STD_OUTPUT_HANDLE);
+            var safeHandle = new Microsoft.Win32.SafeHandles.SafeFileHandle(stdHandle, ownsHandle: false);
+            var fs = new System.IO.FileStream(safeHandle, System.IO.FileAccess.Write);
+            var stdOut = new System.IO.StreamWriter(fs, System.Text.Encoding.UTF8) { AutoFlush = true };
+            Console.SetOut(stdOut);
+            Console.SetError(stdOut);
+
+            bool ok = Task.Run(async () => await WebcamLab.Core.ReverseEngineering.Phase41GuiVerificationRunner.RunVerificationAsync()).GetAwaiter().GetResult();
             Shutdown(ok ? 0 : 1);
             return;
         }
